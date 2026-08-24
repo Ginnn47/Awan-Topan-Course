@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+    background: #f6fbf3;
+    color: #181d19;
+    font-family: "Lexend", sans-serif;
+    letter-spacing: 0;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  .material-symbols-outlined {
+    display: inline-flex;
+    width: 1em;
+    height: 1em;
+    flex: 0 0 1em;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    white-space: nowrap;
+    font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24;
+    line-height: 1;
+  }
+}
+
+@layer components {
+  .session-editor-drawer {
+    animation: session-editor-enter 220ms ease-out;
+    transform-origin: top;
+  }
+
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(16px);
+  }
+
+  .card {
+    @apply rounded-[2rem] border border-outline-variant/30 bg-surface-container-lowest shadow-soft;
+  }
+
+  .card-soft {
+    @apply rounded-[2rem] border border-surface-variant bg-surface-container-low shadow-soft;
+  }
+
+  .pill-input {
+    @apply w-full rounded-full border border-outline-variant bg-surface-tint/5 px-5 py-3 text-sm text-on-surface outline-none transition focus:border-primary focus:ring-1 focus:ring-primary;
+  }
+
+  .primary-button {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-on-primary shadow-sm transition hover:scale-[1.02] hover:brightness-110;
+  }
+
+  .secondary-button {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-secondary-container px-5 py-3 text-sm font-semibold text-on-secondary-container transition hover:brightness-95;
+  }
+
+  .icon-button {
+    @apply flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition hover:scale-[1.02] hover:bg-surface-tint/20 hover:text-primary;
+  }
+
+  .table-cell {
+    @apply px-4 py-3 text-left text-sm;
+  }
+}
+
+@keyframes session-editor-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scaleY(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
