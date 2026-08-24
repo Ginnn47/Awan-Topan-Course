@@ -254,6 +254,12 @@ export default function Finance() {
   const synchronizeRoster = () => {
     try {
       const result = syncBillingPeriod(selectedPeriodId);
+      if (result.conflicts?.length) {
+        const conflict = result.conflicts[0];
+        throw new Error(conflict.studentName
+          ? `${conflict.studentName}: pembayaran aktif ${rupiah.format(conflict.totalPayments)} melebihi tarif tujuan ${rupiah.format(conflict.targetAmount)}.`
+          : conflict.message);
+      }
       refresh();
       const changes = [];
       if (result.added) changes.push(`${result.added} siswa ditambahkan`);
@@ -409,4 +415,11 @@ export default function Finance() {
 
       {rejectTarget && (
         <FinanceDialog title="Tolak Transaksi" description={`Pembayaran ${rupiah.format(rejectTarget.amount)} milik ${rejectTarget.studentName || "siswa"} tidak akan mengubah saldo tagihan.`} onClose={() => { setRejectTarget(null); setRejectReason(""); }} footer={<><button className="h-10 rounded-[8px] border border-outline-variant/55 px-4 text-xs font-bold" onClick={() => { setRejectTarget(null); setRejectReason(""); }}>Batal</button><button className="h-10 rounded-[8px] bg-red-600 px-4 text-xs font-bold text-white" onClick={submitReject}>Tolak Transaksi</button></>}>
-          <Field label="Alasan Penolakan"><textarea className="min-h-24 w-full resize-none rounded-[8px] border border-outline-variant/55 bg-white p-3 text-sm outline-none focus:border-red-500" value={rejectReason} onChange={(event) => setRejectReason(event.target.value)} placeholder="C
+          <Field label="Alasan Penolakan"><textarea className="min-h-24 w-full resize-none rounded-[8px] border border-outline-variant/55 bg-white p-3 text-sm outline-none focus:border-red-500" value={rejectReason} onChange={(event) => setRejectReason(event.target.value)} placeholder="Contoh: nominal pada bukti transfer tidak sesuai" autoFocus /></Field>
+        </FinanceDialog>
+      )}
+
+      {notice && <div className={`fixed bottom-20 right-4 z-[100] flex max-w-sm items-center gap-3 rounded-[8px] px-4 py-3 text-xs font-bold text-white shadow-lift md:bottom-6 md:right-6 ${notice.type === "error" ? "bg-red-700" : "bg-primary"}`}><Icon name={notice.type === "error" ? "warning" : "check_circle"} className="text-base" /> {notice.message}</div>}
+    </div>
+  );
+}

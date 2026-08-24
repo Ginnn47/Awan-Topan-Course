@@ -268,6 +268,9 @@ export default function Rombel({ role }) {
   const selectClass = (classId) => {
     if (batchMode && !window.confirm("Batalkan perubahan batch yang belum disimpan?")) return;
     cancelBatchEdit();
+    setFeeManagerOpen(false);
+    setPendingCategoryDelete(null);
+    setCategoryReplacements({});
     setSelectedId(classId);
     setStudentQuery("");
     setRecapTarget(null);
@@ -394,7 +397,8 @@ export default function Rombel({ role }) {
   };
 
   const addFeeCategory = () => {
-    setFeeDrafts((current) => [...current, { id: `${selectedClass.id}-fee-${Date.now()}`, name: "", amount: 150000 }]);
+    const suffix = Math.random().toString(36).slice(2, 7);
+    setFeeDrafts((current) => [...current, { id: `${selectedClass.id}-fee-${Date.now()}-${suffix}`, name: "", amount: 150000 }]);
   };
 
   const requestFeeCategoryDelete = (categoryId) => {
@@ -481,7 +485,7 @@ export default function Rombel({ role }) {
             </section>
 
             <div className="flex flex-col gap-3 border-b border-outline-variant/35 px-4 py-3 lg:px-5">
-              {batchMode && <div className="flex items-start gap-2 rounded-[8px] border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11px] leading-5 text-amber-900"><Icon name="info" className="mt-0.5 shrink-0 text-base" /><p><strong>Mode kelola batch aktif.</strong> Perubahan berlaku pada master Rombel serta periode dan sesi baru. Invoice dan absensi lama tetap memakai snapshot sebelumnya.</p></div>}
+              {batchMode && <div className="flex items-start gap-2 rounded-[8px] border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11px] leading-5 text-amber-900"><Icon name="info" className="mt-0.5 shrink-0 text-base" /><p><strong>Mode kelola batch aktif.</strong> Nama, sekolah, dan kategori iuran disimpan bersama. Invoice belum lunas akan disinkronkan; invoice lunas tetap menjadi histori.</p></div>}
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="relative w-full sm:max-w-sm"><Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-base text-on-surface-variant" /><input className="h-10 w-full rounded-[8px] border border-outline-variant/50 bg-surface-container-low/50 pl-10 pr-3 text-xs outline-none focus:border-primary focus:bg-white" value={studentQuery} onChange={(event) => setStudentQuery(event.target.value)} placeholder="Cari nama atau sekolah..." /></div>
               {canEdit && !batchMode && <div className="flex flex-wrap gap-2"><button className="inline-flex h-10 items-center justify-center gap-2 rounded-[8px] border border-outline-variant/60 bg-white px-4 text-xs font-bold text-on-surface hover:bg-surface-container-low" onClick={startBatchEdit}><Icon name="edit" className="text-base" /> Kelola Batch</button><button className="inline-flex h-10 items-center justify-center gap-2 rounded-[8px] border border-primary bg-white px-4 text-xs font-bold text-primary hover:bg-emerald-50" onClick={() => setStudentDraft({ ...emptyStudent })}><Icon name="add" className="text-base" /> Tambah Siswa</button></div>}
