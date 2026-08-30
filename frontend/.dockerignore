@@ -1,0 +1,7 @@
+node_modules
+dist
+dist-check
+.chrome-*
+playwright-report
+test-results
+

@@ -15,6 +15,13 @@
     color: #181d19;
     font-family: "Lexend", sans-serif;
     letter-spacing: 0;
+    overflow-x: hidden;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
   }
 
   button,
@@ -76,6 +83,122 @@
 
   .table-cell {
     @apply px-4 py-3 text-left text-sm;
+  }
+
+  .mobile-data-scroll {
+    position: relative;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+  }
+}
+
+@media (max-width: 639px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  .primary-button,
+  .secondary-button {
+    min-height: 44px;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .icon-button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .mobile-data-scroll {
+    padding-bottom: 0.35rem;
+  }
+
+  .mobile-data-scroll::after {
+    position: sticky;
+    right: 0;
+    display: block;
+    width: 100%;
+    padding: 0.4rem 0.75rem;
+    background: #f0f5ee;
+    color: #3f4941;
+    content: "Geser tabel untuk melihat kolom lainnya";
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .student-list-responsive {
+    overflow: visible !important;
+    padding: 0.75rem;
+  }
+
+  .student-list-responsive table,
+  .student-list-responsive tbody {
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+  }
+
+  .student-list-responsive thead {
+    display: none;
+  }
+
+  .student-list-responsive tbody {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .student-list-responsive .student-list-row {
+    display: grid;
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid #d9e5dc;
+    border-radius: 8px;
+    box-shadow: 0 3px 12px rgb(24 29 25 / 5%);
+  }
+
+  .student-list-responsive .student-list-row > td {
+    display: grid;
+    grid-template-columns: minmax(84px, 0.38fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.6rem 0.75rem !important;
+    border-bottom: 1px solid #edf2ee;
+    text-align: left !important;
+  }
+
+  .student-list-responsive .student-list-row > td:last-child {
+    border-bottom: 0;
+  }
+
+  .student-list-responsive .student-list-row > td::before {
+    color: #5f6b62;
+    content: attr(data-label);
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+
+  .student-list-responsive .student-list-row input:not([type="checkbox"]),
+  .student-list-responsive .student-list-row select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .student-list-responsive .student-list-actions > div,
+  .student-list-responsive .student-list-actions > button {
+    justify-self: start;
+    margin-left: 0;
+  }
+
+  .student-list-responsive .student-recap-row,
+  .student-list-responsive .student-recap-row > td {
+    display: block;
+    width: 100%;
   }
 }
 
