@@ -105,6 +105,10 @@ export default function CourseApi() {
   const [selected, setSelected] = useState<Occurrence | null>(null);
   const [arrangeMode, setArrangeMode] = useState(false);
   const [dragged, setDragged] = useState<Occurrence | null>(null);
+  const [dragOverDate, setDragOverDate] = useState<string | null>(null);
+  const [replicateOpen, setReplicateOpen] = useState(false);
+  const [replicateWeeks, setReplicateWeeks] = useState(2);
+  const [skipConflicts, setSkipConflicts] = useState(true);
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [startDraft, setStartDraft] = useState<{
     occurrence: Occurrence;
@@ -174,6 +178,26 @@ export default function CourseApi() {
       setNotice("Jadwal berhasil dibuat dan disinkronkan.");
     },
   });
+  const replicateMutation = useMutation({
+    mutationFn: () =>
+      apiEnvelope("/api/v1/schedule-series/replicate-week/", {
+        method: "POST",
+        body: {
+          source_from: bounds.from,
+          source_to: shift(bounds.to, -1),
+          repeat_weeks: replicateWeeks,
+          skip_conflicts: skipConflicts,
+        },
+      }),
+    onSuccess: (res: any) => {
+      void invalidate();
+      setReplicateOpen(false);
+      const data = res.data;
+      setNotice(
+        `Berhasil membuat batch ${data.created_count} jadwal baru untuk ${data.repeat_weeks} periode minggu ke depan (${data.target_start_date} s/d ${data.target_end_date})${data.skipped_count ? ` (${data.skipped_count} dilewati karena bentrok)` : ""}.`,
+      );
+    },
+  });
   const rescheduleMutation = useMutation({
     mutationFn: ({
       occurrence,
@@ -184,10 +208,8 @@ export default function CourseApi() {
       targetDate: string;
       scope: string;
     }) => {
-      const start = new Date(occurrence.start_at);
-      const end = new Date(occurrence.end_at);
-      const startClock = `${String(start.getHours()).padStart(2, "0")}:${String(start.getMinutes()).padStart(2, "0")}`;
-      const endClock = `${String(end.getHours()).padStart(2, "0")}:${String(end.getMinutes()).padStart(2, "0")}`;
+      const startClock = occurrence.start_at.slice(11, 16);
+      const endClock = occurrence.end_at.slice(11, 16);
       return apiEnvelope(
         `/api/v1/schedule-occurrences/${occurrence.id}/reschedule/`,
         {
@@ -280,16 +302,22 @@ export default function CourseApi() {
     if (reason) cancelMutation.mutate({ occurrence: item, reason });
   };
   const dropOnDay = (targetDate: string) => {
-    if (!dragged || targetDate === dragged.start_at.slice(0, 10)) return;
-    const future = window.confirm(
-      "Terapkan juga pada kejadian berikutnya dalam seri? Pilih Batal untuk hanya sesi ini.",
+    if (!dragged) return;
+    const sourceDate = dragged.start_at.slice(0, 10);
+    if (targetDate === sourceDate) return;
+
+    const confirmed = window.confirm(
+      `Pindahkan sesi ${dragged.class_name} (${dragged.subject_name}) ke hari ${dayName.format(parseLocal(targetDate))}, ${targetDate}?\n\nKlik OK untuk konfirmasi perpindahan jadwal.`,
     );
+    if (!confirmed) return;
+
     rescheduleMutation.mutate({
       occurrence: dragged,
       targetDate,
-      scope: future ? "this_and_future" : "this",
+      scope: "this",
     });
     setDragged(null);
+    setDragOverDate(null);
   };
 
   return (
@@ -300,16 +328,26 @@ export default function CourseApi() {
         action={
           <div className="flex w-full flex-wrap gap-2 sm:w-auto">
             {user?.permissions.manage_schedule && (
-              <button
-                className={`secondary-button min-w-0 flex-1 rounded-[8px] px-3 text-xs sm:flex-none ${arrangeMode ? "bg-amber-100 text-amber-900" : ""}`}
-                onClick={() => {
-                  setArrangeMode((value) => !value);
-                  setSelected(null);
-                }}
-              >
-                <Icon name="drag_indicator" />
-                {arrangeMode ? "Selesai Atur" : "Atur Sesi"}
-              </button>
+              <>
+                <button
+                  className="secondary-button min-w-0 flex-1 rounded-[8px] border-emerald-300 bg-emerald-50 px-3 text-xs font-bold text-emerald-900 hover:bg-emerald-100 sm:flex-none"
+                  onClick={() => setReplicateOpen(true)}
+                  title="Ulangi seluruh jadwal aktif minggu ini ke beberapa periode mendatang"
+                >
+                  <Icon name="event_repeat" />
+                  Ulangi Jadwal Mingguan
+                </button>
+                <button
+                  className={`secondary-button min-w-0 flex-1 rounded-[8px] px-3 text-xs sm:flex-none ${arrangeMode ? "bg-amber-100 text-amber-900 ring-2 ring-amber-400" : ""}`}
+                  onClick={() => {
+                    setArrangeMode((value) => !value);
+                    setSelected(null);
+                  }}
+                >
+                  <Icon name="drag_indicator" />
+                  {arrangeMode ? "Selesai Atur" : "Atur Sesi (Drag & Drop)"}
+                </button>
+              </>
             )}
             <button
               className="primary-button min-w-0 flex-1 rounded-[8px] px-3 text-xs sm:flex-none"
@@ -407,9 +445,36 @@ export default function CourseApi() {
       </section>
 
       {arrangeMode && (
-        <div className="rounded-[8px] border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-900">
-          Tarik kartu sesi ke hari tujuan. Pilihan cakupan pengulangan akan
-          diminta sebelum perubahan disimpan.
+        <div className="space-y-2">
+          <div className="flex items-center justify-between rounded-[8px] border border-amber-300 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-900 shadow-sm">
+            <div className="flex items-center gap-2">
+              <Icon name="drag_indicator" className="text-lg text-amber-700" />
+              <span>
+                <strong>Mode Atur Jadwal Aktif:</strong> Tarik (drag) kartu kelas lalu lepaskan (drop) pada hari tujuan yang diinginkan.
+              </span>
+            </div>
+            <button
+              className="rounded bg-amber-200 px-2.5 py-1 text-[11px] font-bold text-amber-900 hover:bg-amber-300"
+              onClick={() => setArrangeMode(false)}
+            >
+              Selesai
+            </button>
+          </div>
+          {rescheduleMutation.error && (
+            <div className="flex items-center justify-between rounded-[8px] border border-red-300 bg-red-50 px-4 py-3 text-xs font-bold text-red-700">
+              <div className="flex items-center gap-2">
+                <Icon name="error" className="text-base" />
+                <span>
+                  {rescheduleMutation.error instanceof ApiError
+                    ? rescheduleMutation.error.detail.message
+                    : "Jadwal gagal dipindahkan."}
+                </span>
+              </div>
+              <button onClick={() => rescheduleMutation.reset()} className="text-red-700 hover:text-red-900">
+                <Icon name="close" className="text-sm" />
+              </button>
+            </div>
+          )}
         </div>
       )}
       <div
@@ -429,9 +494,34 @@ export default function CourseApi() {
             return (
               <section
                 key={date}
-                className="rounded-[8px] border border-emerald-100 bg-white p-3 shadow-soft sm:p-4"
-                onDragOver={(event) => arrangeMode && event.preventDefault()}
-                onDrop={() => dropOnDay(date)}
+                className={`rounded-[8px] border bg-white p-3 shadow-soft transition-colors sm:p-4 ${
+                  dragOverDate === date && arrangeMode
+                    ? "border-primary bg-emerald-50/80 ring-2 ring-primary/40"
+                    : "border-emerald-100"
+                }`}
+                onDragOver={(event) => {
+                  if (arrangeMode) {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "move";
+                    if (dragOverDate !== date) setDragOverDate(date);
+                  }
+                }}
+                onDragEnter={(event) => {
+                  if (arrangeMode) {
+                    event.preventDefault();
+                    setDragOverDate(date);
+                  }
+                }}
+                onDragLeave={(event) => {
+                  if (arrangeMode && event.relatedTarget && !event.currentTarget.contains(event.relatedTarget as Node)) {
+                    setDragOverDate(null);
+                  }
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  setDragOverDate(null);
+                  dropOnDay(date);
+                }}
               >
                 <div className="flex items-center gap-3 border-b border-emerald-100 pb-3 sm:gap-4">
                   <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-[8px] bg-gradient-to-br from-[#dff5ea] to-[#bce6d2] text-primary">
@@ -505,11 +595,24 @@ export default function CourseApi() {
                               <button
                                 key={item.id}
                                 draggable={arrangeMode}
-                                onDragStart={() => setDragged(item)}
+                                onDragStart={(event) => {
+                                  if (!arrangeMode) return;
+                                  event.dataTransfer.setData("text/plain", item.id);
+                                  event.dataTransfer.effectAllowed = "move";
+                                  setDragged(item);
+                                }}
+                                onDragEnd={() => {
+                                  setDragged(null);
+                                  setDragOverDate(null);
+                                }}
                                 onClick={() =>
                                   !arrangeMode && setSelected(item)
                                 }
-                                className={`group min-w-0 rounded-[8px] border-t-4 p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-soft ${subjectTones[item.subject_color] || subjectTones.teal} ${selected?.id === item.id ? "ring-2 ring-primary/30" : ""}`}
+                                className={`group min-w-0 rounded-[8px] border-t-4 p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-soft ${
+                                  arrangeMode ? "cursor-grab active:cursor-grabbing" : ""
+                                } ${dragged?.id === item.id ? "opacity-40 ring-2 ring-primary" : ""} ${
+                                  subjectTones[item.subject_color] || subjectTones.teal
+                                } ${selected?.id === item.id ? "ring-2 ring-primary/30" : ""}`}
                               >
                                 <div className="flex min-w-0 items-center justify-between gap-3">
                                   <span
@@ -927,6 +1030,101 @@ export default function CourseApi() {
                 disabled={startMutation.isPending || !startDraft.topic.trim()}
               >
                 {startMutation.isPending ? "Memulai..." : "Mulai Sesi"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+      {replicateOpen && (
+        <div
+          className="fixed inset-0 z-[80] grid place-items-center bg-black/40 p-4"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget && !replicateMutation.isPending) setReplicateOpen(false);
+          }}
+        >
+          <form
+            className="w-full max-w-lg rounded-[8px] border border-emerald-100 bg-white p-5 shadow-lift sm:p-6"
+            onSubmit={(e) => {
+              e.preventDefault();
+              replicateMutation.mutate();
+            }}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold text-primary">Batch Scheduling</p>
+                <h2 className="mt-1 text-xl font-bold">Ulangi Jadwal Minggu Ini</h2>
+                <p className="mt-1 text-xs leading-5 text-on-surface-variant">
+                  Duplikasi seluruh jadwal kelas aktif pada minggu ini ke beberapa minggu/periode mendatang secara otomatis.
+                </p>
+              </div>
+              <button
+                className="icon-button shrink-0"
+                type="button"
+                onClick={() => setReplicateOpen(false)}
+                disabled={replicateMutation.isPending}
+              >
+                <Icon name="close" />
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-4">
+              <div className="rounded-[8px] border border-emerald-200 bg-emerald-50/70 p-3.5 text-xs">
+                <p className="font-bold text-emerald-900">Periode Sumber Jadwal:</p>
+                <p className="mt-1 font-semibold text-primary">
+                  {bounds.from} s/d {shift(bounds.to, -1)} ({occurrences.data?.length || 0} jadwal kelas terdaftar)
+                </p>
+              </div>
+
+              <label className="block text-xs font-bold">
+                Ulangi Ke Berapa Minggu Mendatang?
+                <select
+                  className="mt-2 h-11 w-full rounded-[8px] border border-outline-variant/60 bg-white px-3 font-normal outline-none focus:border-primary"
+                  value={replicateWeeks}
+                  onChange={(e) => setReplicateWeeks(Number(e.target.value))}
+                >
+                  <option value={1}>1 Minggu ke Depan</option>
+                  <option value={2}>2 Minggu ke Depan</option>
+                  <option value={3}>3 Minggu ke Depan</option>
+                  <option value={4}>4 Minggu ke Depan (1 Bulan)</option>
+                  <option value={6}>6 Minggu ke Depan</option>
+                  <option value={8}>8 Minggu ke Depan (2 Bulan)</option>
+                </select>
+              </label>
+
+              <label className="flex items-center gap-2 text-xs font-medium text-on-surface cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  checked={skipConflicts}
+                  onChange={(e) => setSkipConflicts(e.target.checked)}
+                />
+                <span>Lewati otomatis jika ditemukan benturan jadwal (Recommended)</span>
+              </label>
+            </div>
+
+            {replicateMutation.error && (
+              <p className="mt-4 text-xs font-semibold text-red-600">
+                {replicateMutation.error instanceof ApiError
+                  ? replicateMutation.error.detail.message
+                  : "Gagal menduplikasi jadwal mingguan."}
+              </p>
+            )}
+
+            <div className="mt-6 grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+              <button
+                className="h-10 rounded-[8px] border px-4 text-xs font-bold"
+                type="button"
+                onClick={() => setReplicateOpen(false)}
+                disabled={replicateMutation.isPending}
+              >
+                Batal
+              </button>
+              <button
+                className="h-10 rounded-[8px] bg-primary px-5 text-xs font-bold text-white disabled:opacity-60"
+                type="submit"
+                disabled={replicateMutation.isPending}
+              >
+                {replicateMutation.isPending ? "Memproses Batch..." : "Mulai Duplikasi"}
               </button>
             </div>
           </form>

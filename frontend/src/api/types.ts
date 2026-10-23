@@ -160,6 +160,9 @@ export interface TeachingSession {
     original_name: string;
     content_type: string;
     size_bytes: number;
+    file?: string;
+    url?: string;
+    created_at?: string;
   }>;
   permissions: {
     can_edit: boolean;

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   ApiError,
   apiEnvelope,
@@ -702,15 +702,18 @@ export default function RombelApi() {
                           ? item.fee_plan_id
                           : item.fee_plan;
                         const archived = batchMode && item.action === "archive";
+                        const isExpanded = !batchMode && recapStudent === studentId;
                         return (
-                          <tr
-                            key={item.key || item.id}
-                            className={`student-list-row ${
-                              archived
-                                ? "bg-red-50 opacity-60"
-                                : "hover:bg-emerald-50/40"
-                            }`}
-                          >
+                          <Fragment key={item.key || item.id}>
+                            <tr
+                              className={`student-list-row ${
+                                archived
+                                  ? "bg-red-50 opacity-60"
+                                  : isExpanded
+                                    ? "bg-emerald-50/70 border-b-0"
+                                    : "hover:bg-emerald-50/40"
+                              }`}
+                            >
                             <td className="px-5 py-3" data-label="Siswa">
                               {batchMode ? (
                                 <input
@@ -836,103 +839,118 @@ export default function RombelApi() {
                                 </button>
                               ) : (
                                 <button
-                                  className={`icon-button ml-auto h-8 w-8 border border-emerald-200 ${recapStudent === studentId ? "bg-primary text-white" : "bg-emerald-50 text-primary"}`}
+                                  className={`icon-button ml-auto h-8 w-8 border border-emerald-200 transition ${isExpanded ? "bg-primary text-white shadow-sm" : "bg-emerald-50 text-primary hover:bg-emerald-100"}`}
                                   onClick={() =>
                                     setRecapStudent((value) =>
                                       value === studentId ? "" : studentId,
                                     )
                                   }
-                                  title="Rekap Bulanan"
+                                  title={isExpanded ? "Tutup Rekap" : "Rekap Bulanan"}
                                 >
                                   <Icon
-                                    name="receipt_long"
+                                    name={isExpanded ? "expand_less" : "receipt_long"}
                                     className="text-base"
                                   />
                                 </button>
                               )}
                             </td>
-                            {!batchMode && recapStudent === studentId && (
-                              <td className="hidden" />
-                            )}
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                {!batchMode &&
-                  recapStudent &&
-                  (() => {
-                    const detail = recap.data?.students.find(
-                      (item) => item.student.id === recapStudent,
-                    );
-                    if (!detail)
-                      return (
-                        <div className="session-editor-drawer border-t p-5 text-xs">
-                          Memuat rekap siswa...
-                        </div>
+                          {isExpanded && (
+                            <tr className="student-recap-row">
+                              <td colSpan={4} className="p-0 border-b border-emerald-100">
+                                <div className="session-editor-drawer border-l-4 border-l-primary bg-[#f8fcf9] p-4 sm:p-5 shadow-inner">
+                                  {(() => {
+                                    const detail = recap.data?.students.find(
+                                      (s) => s.student.id === studentId,
+                                    );
+                                    if (!detail)
+                                      return (
+                                        <div className="flex items-center gap-2 py-2 text-xs text-on-surface-variant">
+                                          <Icon
+                                            name="progress_activity"
+                                            className="animate-spin text-base text-primary"
+                                          />
+                                          Memuat rekap bulanan siswa...
+                                        </div>
+                                      );
+                                    return (
+                                      <div>
+                                        <div className="flex items-center justify-between">
+                                          <div>
+                                            <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                                              Rekap Bulanan · {month}
+                                            </p>
+                                            <h4 className="mt-0.5 text-base font-bold text-on-surface">
+                                              {detail.student.full_name}
+                                            </h4>
+                                            <p className="mt-0.5 text-xs text-on-surface-variant">
+                                              {detail.student.school || "Sekolah"} ·{" "}
+                                              <span className="font-semibold text-primary">
+                                                {detail.payment?.fee_plan_name || "Reguler"}
+                                              </span>
+                                            </p>
+                                          </div>
+                                          <button
+                                            className="icon-button h-8 w-8 rounded-full border border-emerald-200 bg-white text-on-surface hover:bg-emerald-50"
+                                            onClick={() => setRecapStudent("")}
+                                            title="Tutup Rekap"
+                                          >
+                                            <Icon name="close" className="text-base" />
+                                          </button>
+                                        </div>
+                                        <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
+                                          <div className="rounded-[8px] border border-emerald-100 bg-white p-3 shadow-xs">
+                                            <p className="text-[10px] font-bold uppercase text-on-surface-variant">
+                                              Status Pembayaran
+                                            </p>
+                                            <p className="mt-2 text-sm font-bold text-primary">
+                                              {detail.payment?.status || "UNPAID"}
+                                            </p>
+                                            {user?.role === "ADMIN" && (
+                                              <p className="mt-1 text-[10px] text-on-surface-variant">
+                                                Sisa:{" "}
+                                                <span className="font-semibold text-primary">
+                                                  {rupiah.format(
+                                                    detail.payment?.outstanding_rupiah ??
+                                                      (detail.payment?.amount_due_rupiah ?? 0),
+                                                )}
+                                                </span>
+                                              </p>
+                                            )}
+                                          </div>
+                                          {[
+                                            ["Hadir", detail.attendance?.present ?? 0],
+                                            [
+                                              "Izin + Sakit",
+                                              (detail.attendance?.permit ?? 0) +
+                                                (detail.attendance?.sick ?? 0),
+                                            ],
+                                            ["Alfa", detail.attendance?.absent ?? 0],
+                                          ].map(([label, value]) => (
+                                            <div
+                                              key={label as string}
+                                              className="rounded-[8px] border border-emerald-100 bg-white p-3 shadow-xs"
+                                            >
+                                              <p className="text-[10px] font-bold uppercase text-on-surface-variant">
+                                                {label}
+                                              </p>
+                                              <p className="mt-2 text-xl font-bold">{value}</p>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
                       );
-                    return (
-                      <div className="session-editor-drawer border-t border-emerald-100 bg-[#f8fcf9] p-5">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-xs font-bold text-primary">
-                              Rekap Bulanan · {month}
-                            </p>
-                            <h4 className="mt-1 text-lg font-bold">
-                              {detail.student.full_name}
-                            </h4>
-                            <p className="mt-1 text-xs text-on-surface-variant">
-                              {detail.student.school} ·{" "}
-                              {detail.payment.fee_plan_name}
-                            </p>
-                          </div>
-                          <button
-                            className="icon-button"
-                            onClick={() => setRecapStudent("")}
-                          >
-                            <Icon name="close" />
-                          </button>
-                        </div>
-                        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                          <div className="rounded-[8px] border bg-white p-3">
-                            <p className="text-[10px] text-on-surface-variant">
-                              Status Pembayaran
-                            </p>
-                            <p className="mt-2 text-sm font-bold text-primary">
-                              {detail.payment.status}
-                            </p>
-                            {user?.role === "ADMIN" && (
-                              <p className="mt-1 text-[10px]">
-                                Sisa{" "}
-                                {rupiah.format(
-                                  detail.payment.outstanding_rupiah || 0,
-                                )}
-                              </p>
-                            )}
-                          </div>
-                          {[
-                            ["Hadir", detail.attendance.present],
-                            [
-                              "Izin + Sakit",
-                              detail.attendance.permit + detail.attendance.sick,
-                            ],
-                            ["Alfa", detail.attendance.absent],
-                          ].map(([label, value]) => (
-                            <div
-                              key={label}
-                              className="rounded-[8px] border bg-white p-3"
-                            >
-                              <p className="text-[10px] text-on-surface-variant">
-                                {label}
-                              </p>
-                              <p className="mt-2 text-xl font-bold">{value}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })()}
+                    })}
+                  </tbody>
+                </table>
+              </div>
                 {batchMode && (
                   <div className="flex flex-wrap items-center justify-between gap-3 border-t bg-surface-container-low p-4">
                     <button

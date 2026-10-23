@@ -84,6 +84,16 @@ export default function TeachersApi() {
       void queryClient.invalidateQueries({ queryKey: queryKeys.classes });
     },
   });
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiEnvelope<Teacher>(`/api/v1/teachers/${id}/`, { method: "DELETE" }),
+    onSuccess: () => {
+      setDraft(null);
+      setNotice("Pengajar berhasil dinonaktifkan tanpa menghapus riwayat jadwal.");
+      void queryClient.invalidateQueries({ queryKey: queryKeys.teachers });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.classes });
+    },
+  });
   const visible = useMemo(() => {
     const keyword = query.trim().toLowerCase();
     if (!keyword) return teachers.data || [];
@@ -129,6 +139,13 @@ export default function TeachersApi() {
           {saveMutation.error instanceof ApiError
             ? saveMutation.error.detail.message
             : "Data pengajar gagal disimpan."}
+        </div>
+      )}
+      {deleteMutation.error && (
+        <div className="rounded-[8px] border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-700">
+          {deleteMutation.error instanceof ApiError
+            ? deleteMutation.error.detail.message
+            : "Gagal menonaktifkan pengajar."}
         </div>
       )}
       <section className="overflow-hidden rounded-[8px] border border-emerald-100 bg-white shadow-soft">
@@ -225,10 +242,11 @@ export default function TeachersApi() {
                   <TeacherEditor
                     draft={draft}
                     classes={classes.data || []}
-                    pending={saveMutation.isPending}
+                    pending={saveMutation.isPending || deleteMutation.isPending}
                     onChange={setDraft}
                     onCancel={() => setDraft(null)}
                     onSubmit={submit}
+                    onDelete={(id) => deleteMutation.mutate(id)}
                   />
                 )}
               </div>
@@ -256,7 +274,7 @@ export default function TeachersApi() {
             <TeacherEditor
               draft={draft}
               classes={classes.data || []}
-              pending={saveMutation.isPending}
+              pending={saveMutation.isPending || deleteMutation.isPending}
               onChange={setDraft}
               onCancel={() => setDraft(null)}
               onSubmit={submit}
@@ -276,6 +294,7 @@ function TeacherEditor({
   onChange,
   onCancel,
   onSubmit,
+  onDelete,
   modal = false,
 }: {
   draft: TeacherDraft;
@@ -284,6 +303,7 @@ function TeacherEditor({
   onChange: (draft: TeacherDraft) => void;
   onCancel: () => void;
   onSubmit: (event: FormEvent) => void;
+  onDelete?: (id: string) => void;
   modal?: boolean;
 }) {
   const field = <K extends keyof TeacherDraft>(
@@ -380,17 +400,40 @@ function TeacherEditor({
           })}
         </div>
       </section>
-      <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <button
-          className="secondary-button rounded-[8px]"
-          type="button"
-          onClick={onCancel}
-        >
-          Batal
-        </button>
-        <button className="primary-button rounded-[8px]" disabled={pending}>
-          <Icon name="save" /> {pending ? "Menyimpan..." : "Simpan Akses"}
-        </button>
+      <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          {draft.id && !draft.is_admin && onDelete && (
+            <button
+              className="inline-flex h-10 items-center gap-1.5 rounded-[8px] border border-red-200 bg-red-50 px-3 text-xs font-bold text-red-700 hover:bg-red-100"
+              type="button"
+              disabled={pending}
+              onClick={() => {
+                if (
+                  window.confirm(
+                    `Yakin ingin menonaktifkan pengajar ${draft.full_name}? Riwayat mengajar dan jadwal yang sudah ada tetap tersimpan.`
+                  )
+                ) {
+                  onDelete(draft.id!);
+                }
+              }}
+            >
+              <Icon name="delete" className="text-base" />
+              Nonaktifkan Pengajar
+            </button>
+          )}
+        </div>
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button
+            className="secondary-button rounded-[8px]"
+            type="button"
+            onClick={onCancel}
+          >
+            Batal
+          </button>
+          <button className="primary-button rounded-[8px]" disabled={pending}>
+            <Icon name="save" /> {pending ? "Menyimpan..." : "Simpan Akses"}
+          </button>
+        </div>
       </div>
     </form>
   );

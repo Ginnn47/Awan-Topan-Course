@@ -1,3 +1,11 @@
+function formatBytes(bytes: number) {
+  if (!bytes || bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+}
+
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -59,6 +67,7 @@ export default function SessionDetailApi() {
     "details",
   );
   const [notice, setNotice] = useState("");
+  const [completionAlert, setCompletionAlert] = useState<string[] | null>(null);
   const [notes, setNotes] = useState({
     topic: "",
     material_description: "",
@@ -211,6 +220,16 @@ export default function SessionDetailApi() {
       refresh();
     },
   });
+  const deleteAttachmentMutation = useMutation({
+    mutationFn: (attachmentId: string) =>
+      apiEnvelope(`/api/v1/sessions/${sessionId}/attachments/${attachmentId}/`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      setNotice("Lampiran materi berhasil dihapus.");
+      refresh();
+    },
+  });
 
   const visible = useMemo(
     () =>
@@ -244,6 +263,33 @@ export default function SessionDetailApi() {
     notes.material_description.trim() &&
     !attendance.some((item) => item.status === "UNSET"),
   );
+
+  const handleComplete = () => {
+    const missing: string[] = [];
+    if (!notes.topic.trim()) missing.push("Topik pembelajaran wajib diisi.");
+    if (!notes.material_description.trim())
+      missing.push("Deskripsi materi pembelajaran wajib diisi oleh guru.");
+    const unsetCount = attendance.filter((item) => item.status === "UNSET").length;
+    if (unsetCount > 0)
+      missing.push(
+        `Seluruh absensi siswa wajib diisi (${unsetCount} siswa masih berstatus Belum Diisi).`,
+      );
+    if (notesDirty)
+      missing.push(
+        "Catatan materi memiliki perubahan yang belum disimpan. Klik 'Simpan Catatan' terlebih dahulu.",
+      );
+    if (attendanceDirty)
+      missing.push(
+        "Absensi siswa memiliki perubahan yang belum disimpan. Klik 'Simpan Absensi' terlebih dahulu.",
+      );
+
+    if (missing.length > 0) {
+      setCompletionAlert(missing);
+      return;
+    }
+    setCompletionAlert(null);
+    completeMutation.mutate();
+  };
   const mutationError = [
     notesMutation.error,
     attendanceMutation.error,
@@ -251,6 +297,7 @@ export default function SessionDetailApi() {
     reopenMutation.error,
     scheduleMutation.error,
     uploadMutation.error,
+    deleteAttachmentMutation.error,
   ].find(Boolean);
 
   if (session.isLoading)
@@ -297,9 +344,11 @@ export default function SessionDetailApi() {
               )}
             {detail.occurrence_status === "IN_PROGRESS" && (
               <button
-                className="primary-button min-w-0 flex-1 rounded-[8px] px-3 text-xs disabled:opacity-50 sm:flex-none"
-                disabled={!canComplete || completeMutation.isPending}
-                onClick={() => completeMutation.mutate()}
+                className={`primary-button min-w-0 flex-1 rounded-[8px] px-3 text-xs sm:flex-none ${
+                  !canComplete ? "border-amber-400 bg-amber-600 text-white hover:bg-amber-700" : ""
+                }`}
+                disabled={completeMutation.isPending}
+                onClick={handleComplete}
               >
                 <Icon name="task_alt" />
                 Selesaikan Sesi
@@ -320,6 +369,35 @@ export default function SessionDetailApi() {
           </div>
         }
       />
+      {completionAlert && (
+        <div className="rounded-[8px] border-2 border-amber-400 bg-amber-50 p-4 shadow-lift">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex gap-3">
+              <Icon name="warning" className="text-xl text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-bold text-amber-900">
+                  Perhatian! Sesi Mengajar Belum Selesai
+                </h3>
+                <p className="mt-1 text-xs text-amber-800">
+                  Guru wajib mengisi bagian deskripsi materi dan memastikan seluruh siswa diabsen sebelum sesi dapat diselesaikan:
+                </p>
+                <ul className="mt-2 list-disc list-inside space-y-1 text-xs font-semibold text-amber-900">
+                  {completionAlert.map((msg, i) => (
+                    <li key={i}>{msg}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            <button
+              onClick={() => setCompletionAlert(null)}
+              className="rounded p-1 text-amber-800 hover:bg-amber-100"
+              aria-label="Tutup peringatan"
+            >
+              <Icon name="close" className="text-base" />
+            </button>
+          </div>
+        </div>
+      )}
       {notice && (
         <div className="flex items-center justify-between rounded-[8px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold text-primary">
           <span>{notice}</span>
@@ -331,14 +409,30 @@ export default function SessionDetailApi() {
       {detail.occurrence_status === "IN_PROGRESS" && (
         <div className="rounded-[8px] border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
           <div className="flex gap-3">
-            <Icon name="info" />
-            <div>
+            <Icon name="info" className="text-lg text-blue-700 shrink-0 mt-0.5" />
+            <div className="flex-1">
               <p className="font-bold">Pencatatan sesi sedang berlangsung</p>
               <p className="mt-1 text-xs leading-5">
-                Isi dan simpan absensi seluruh siswa, lalu simpan topik serta
-                deskripsi materi. Sesi tidak dapat diselesaikan selama masih ada
-                perubahan yang belum disimpan.
+                Guru wajib mengisi deskripsi materi pembelajaran dan seluruh absensi siswa sebelum dapat menyelesaikan sesi.
               </p>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                <div className={`rounded border p-2 ${notes.topic.trim() ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-800 font-bold"}`}>
+                  <p className="text-[10px] uppercase font-bold">Topik</p>
+                  <p className="font-semibold">{notes.topic.trim() ? "Terisi" : "Wajib Diisi"}</p>
+                </div>
+                <div className={`rounded border p-2 ${notes.material_description.trim() ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-red-300 bg-red-100 text-red-900 font-bold ring-1 ring-red-400"}`}>
+                  <p className="text-[10px] uppercase font-bold">Deskripsi Materi</p>
+                  <p className="font-semibold">{notes.material_description.trim() ? "Terisi" : "WAJIB DIISI"}</p>
+                </div>
+                <div className={`rounded border p-2 ${(!counts.UNSET || counts.UNSET === 0) ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-red-300 bg-red-100 text-red-900 font-bold ring-1 ring-red-400"}`}>
+                  <p className="text-[10px] uppercase font-bold">Absensi Siswa</p>
+                  <p className="font-semibold">{(!counts.UNSET || counts.UNSET === 0) ? "Lengkap" : `${counts.UNSET} Belum Diisi`}</p>
+                </div>
+                <div className={`rounded border p-2 ${(!notesDirty && !attendanceDirty) ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-800 font-bold"}`}>
+                  <p className="text-[10px] uppercase font-bold">Status Simpan</p>
+                  <p className="font-semibold">{(!notesDirty && !attendanceDirty) ? "Tersimpan" : "Belum Disimpan"}</p>
+                </div>
+              </div>
               <button
                 className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-[7px] bg-blue-700 px-3 text-xs font-bold text-white xl:hidden"
                 onClick={() => setMobileSection("attendance")}
@@ -536,6 +630,81 @@ export default function SessionDetailApi() {
                 />
               </label>
             </div>
+            {uploadMutation.isPending && (
+              <div className="mt-3 flex items-center gap-2 rounded-[8px] border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-primary">
+                <Icon name="progress_activity" className="animate-spin text-base" />
+                Mengunggah berkas lampiran...
+              </div>
+            )}
+            {detail.attachments && detail.attachments.length > 0 && (
+              <div className="mt-4 border-t border-emerald-100 pt-3">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
+                  Berkas Lampiran ({detail.attachments.length})
+                </p>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  {detail.attachments.map((att) => (
+                    <div
+                      key={att.id}
+                      className="flex items-center justify-between gap-3 rounded-[8px] border border-emerald-100 bg-[#f8fcf9] p-3 text-xs"
+                    >
+                      <div className="flex min-w-0 items-center gap-2">
+                        <Icon
+                          name={
+                            att.content_type?.includes("pdf")
+                              ? "picture_as_pdf"
+                              : "image"
+                          }
+                          className="shrink-0 text-lg text-primary"
+                        />
+                        <div className="min-w-0">
+                          <p
+                            className="truncate font-semibold text-on-surface"
+                            title={att.original_name}
+                          >
+                            {att.original_name}
+                          </p>
+                          <p className="text-[10px] text-on-surface-variant">
+                            {formatBytes(att.size_bytes)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1">
+                        {(att.file || (att as { url?: string }).url) && (
+                          <a
+                            href={att.file || (att as { url?: string }).url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="icon-button h-8 w-8 hover:bg-emerald-100"
+                            title="Unduh / Buka berkas"
+                          >
+                            <Icon name="download" className="text-base" />
+                          </a>
+                        )}
+                        {detail.permissions.can_edit && (
+                          <button
+                            type="button"
+                            className="icon-button h-8 w-8 text-red-600 hover:bg-red-50"
+                            title="Hapus lampiran"
+                            disabled={deleteAttachmentMutation.isPending}
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  `Hapus lampiran "${att.original_name}"?`,
+                                )
+                              ) {
+                                deleteAttachmentMutation.mutate(att.id);
+                              }
+                            }}
+                          >
+                            <Icon name="delete" className="text-base" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="mt-5 grid gap-4">
               <label className="text-xs font-bold">
                 Topik Pembelajaran
@@ -554,7 +723,16 @@ export default function SessionDetailApi() {
                 />
               </label>
               <label className="text-xs font-bold">
-                Deskripsi Materi
+                <div className="flex items-center justify-between">
+                  <span>
+                    Deskripsi Materi <span className="font-bold text-red-600">* (Wajib Diisi Guru)</span>
+                  </span>
+                  {!notes.material_description.trim() && (
+                    <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-700">
+                      Wajib
+                    </span>
+                  )}
+                </div>
                 <textarea
                   className="mt-2 min-h-28 w-full rounded-[8px] border border-outline-variant/60 p-3 font-normal outline-none focus:border-primary"
                   value={notes.material_description}
