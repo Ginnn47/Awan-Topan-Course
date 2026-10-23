@@ -1,3 +1,5 @@
+import os
+import uuid
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
@@ -69,9 +71,27 @@ class ClassGroup(models.Model):
         return f"{self.name} - {self.subject.name}"
 
 
+class FeePlan(models.Model):
+    class_group = models.ForeignKey(ClassGroup, on_delete=models.CASCADE, related_name="fee_plans")
+    name = models.CharField(max_length=120)
+    monthly_amount_rupiah = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    effective_from = models.DateField(default=timezone.localdate)
+    effective_until = models.DateField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-is_active", "name")
+
+    def __str__(self):
+        return f"{self.class_group.name} - {self.name}"
+
+
 class Enrollment(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     class_group = models.ForeignKey(ClassGroup, on_delete=models.CASCADE)
+    fee_plan = models.ForeignKey("FeePlan", on_delete=models.SET_NULL, null=True, blank=True, related_name="enrollments")
     joined_at = models.DateField(default=timezone.localdate)
     is_active = models.BooleanField(default=True)
 
@@ -124,6 +144,29 @@ class SessionRecord(models.Model):
         self.save(update_fields=["status", "completed_at"])
 
 
+def session_attachment_path(instance, filename):
+    ext = os.path.splitext(filename)[1].lower()
+    return f"session_attachments/{instance.session_id}/{uuid.uuid4().hex}{ext}"
+
+
+class SessionAttachment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    session = models.ForeignKey(SessionRecord, on_delete=models.CASCADE, related_name="attachments")
+    file = models.FileField(upload_to=session_attachment_path)
+    original_name = models.CharField(max_length=255)
+    content_type = models.CharField(max_length=100, blank=True)
+    size_bytes = models.BigIntegerField(default=0)
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="uploaded_attachments")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.original_name} ({self.size_bytes} bytes)"
+
+
+
 class TeacherAttendance(models.Model):
     session = models.OneToOneField(SessionRecord, on_delete=models.CASCADE, related_name="teacher_attendance")
     teacher = models.ForeignKey(TeacherProfile, on_delete=models.PROTECT)
@@ -149,6 +192,26 @@ class StudentAttendance(models.Model):
         unique_together = ("session", "student")
 
 
+class BillingPeriod(models.Model):
+    class Status(models.TextChoices):
+        ACTIVE = "ACTIVE", "Active"
+        CLOSED = "CLOSED", "Closed"
+
+    period_id = models.CharField(max_length=20, unique=True)
+    month = models.DateField(unique=True)
+    due_date = models.DateField()
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.ACTIVE)
+    generated_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-month",)
+
+    def __str__(self):
+        return f"{self.period_id} ({self.status})"
+
+
 class Payment(models.Model):
     class Status(models.TextChoices):
         PAID = "paid", "Lunas"
@@ -163,6 +226,8 @@ class Payment(models.Model):
     amount_paid = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     paid_at = models.DateField(null=True, blank=True)
     method = models.CharField(max_length=60, blank=True)
+    due_date = models.DateField(null=True, blank=True)
+    fee_plan = models.ForeignKey("FeePlan", on_delete=models.SET_NULL, null=True, blank=True, related_name="payments")
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     notes = models.TextField(blank=True)
     voided_at = models.DateTimeField(null=True, blank=True)
@@ -172,6 +237,39 @@ class Payment(models.Model):
 
     class Meta:
         unique_together = ("student", "period")
+
+
+class PaymentTransaction(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "PENDING", "Pending"
+        VERIFIED = "VERIFIED", "Verified"
+        REJECTED = "REJECTED", "Rejected"
+        VOID = "VOID", "Void"
+
+    payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name="transactions")
+    amount_rupiah = models.DecimalField(max_digits=12, decimal_places=2)
+    paid_on = models.DateField(default=timezone.localdate)
+    method = models.CharField(max_length=60, default="Transfer")
+    reference = models.CharField(max_length=120, blank=True)
+    note = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    recorded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="recorded_transactions")
+    reviewed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="reviewed_transactions")
+    verified_at = models.DateTimeField(null=True, blank=True)
+    rejected_at = models.DateTimeField(null=True, blank=True)
+    rejection_reason = models.TextField(blank=True)
+    voided_at = models.DateTimeField(null=True, blank=True)
+    void_reason = models.TextField(blank=True)
+    version = models.PositiveIntegerField(default=1)
+    proof_file = models.FileField(upload_to="payment_proofs/", null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"TX-{self.id} | {self.payment.student.full_name} | {self.amount_rupiah} ({self.status})"
 
 
 class AuditLog(models.Model):

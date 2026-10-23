@@ -1,0 +1,3 @@
+# Temporary dependencies for PostgreSQL source database during data migration
+-r requirements.txt
+psycopg[binary]>=3.2,<4.0
