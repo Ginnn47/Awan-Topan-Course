@@ -15,13 +15,14 @@ export default function DatabaseTabs() {
   const navigate = useNavigate();
 
   return (
-    <nav className="grid grid-cols-2 rounded-[8px] border border-emerald-100 bg-white p-1 shadow-sm sm:flex sm:w-fit">
+    <nav className="grid grid-cols-2 rounded-[8px] border border-stone-200 bg-white p-1 shadow-sm sm:flex sm:w-fit">
       {tabs.map((tab) => {
         const active = location.pathname.startsWith(tab.path);
         return (
           <button
             key={tab.path}
-            className={`inline-flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-[7px] px-3 text-xs font-bold transition sm:px-5 ${active ? "bg-primary text-white" : "text-on-surface-variant hover:bg-emerald-50 hover:text-primary"}`}
+            className={`inline-flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-[7px] px-3 text-xs font-bold transition sm:px-5 ${active ? "bg-[#18191B] text-amber-400 font-bold shadow-xs" : "text-stone-600 hover:bg-stone-100 hover:text-neutral-900 font-medium"}`}
+            style={active ? { backgroundColor: "#18191B", color: "#F59E0B" } : undefined}
             onClick={() => navigate(tab.path)}
           >
             <Icon name={tab.icon} className="text-base" />

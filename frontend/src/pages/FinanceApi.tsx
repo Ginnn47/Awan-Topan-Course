@@ -114,15 +114,35 @@ export default function FinanceApi() {
     queryFn: ({ signal }) =>
       apiListAll<ClassGroup>("/api/v1/class-groups/?is_active=true", signal),
   });
-  const activePeriod =
-    periods.data?.find((item) => item.month.slice(0, 7) === activeMonth) ||
-    null;
+  const [selectedPeriodId, setSelectedPeriodId] = useState<string>("");
+
+  const sortedPeriods = useMemo(() => {
+    return [...(periods.data || [])].sort((a, b) => b.month.localeCompare(a.month));
+  }, [periods.data]);
+
+  const activePeriod = useMemo(() => {
+    if (!sortedPeriods.length) return null;
+    if (selectedPeriodId) {
+      const match = sortedPeriods.find(
+        (p) => p.id === selectedPeriodId || p.month.slice(0, 7) === selectedPeriodId,
+      );
+      if (match) return match;
+    }
+    const current = sortedPeriods.find((p) => p.month.slice(0, 7) === activeMonth);
+    return current || sortedPeriods[0];
+  }, [sortedPeriods, selectedPeriodId, activeMonth]);
+
+  const activeIndex = sortedPeriods.findIndex((p) => p.id === activePeriod?.id);
+  const prevPeriod =
+    activeIndex < sortedPeriods.length - 1 ? sortedPeriods[activeIndex + 1] : null;
+  const nextPeriod = activeIndex > 0 ? sortedPeriods[activeIndex - 1] : null;
+
   const invoices = useQuery({
     queryKey: queryKeys.invoices(activePeriod?.id || activeMonth),
     queryFn: ({ signal }) =>
       apiListAll<Invoice>(
         `/api/v1/invoices/${queryString({
-          period: activePeriod?.id,
+          period: activePeriod?.id || activePeriod?.month.slice(0, 7),
           reporting_date: operational.date,
         })}`,
         signal,
@@ -133,7 +153,10 @@ export default function FinanceApi() {
     queryKey: queryKeys.transactions(activePeriod?.id || activeMonth),
     queryFn: ({ signal }) =>
       apiListAll<PaymentTransaction>(
-        "/api/v1/payment-transactions/?ordering=-created_at",
+        `/api/v1/payment-transactions/${queryString({
+          period: activePeriod?.id || activePeriod?.month.slice(0, 7),
+          ordering: "-created_at",
+        })}`,
         signal,
       ),
     enabled: Boolean(activePeriod),
@@ -372,19 +395,19 @@ export default function FinanceApi() {
     <div className="space-y-5">
       <PageHeader
         title="Finance"
-        description={`Pantau tagihan, cicilan, dan verifikasi pembayaran periode ${formatMonth(activeMonth)}.`}
+        description={`Pantau tagihan, cicilan, dan verifikasi pembayaran periode ${activePeriod ? formatMonth(activePeriod.month) : formatMonth(activeMonth)}.`}
         action={
           <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
-            <div className="col-span-2 flex h-11 w-full rounded-[8px] border border-emerald-100 bg-white p-1 shadow-sm sm:col-auto sm:w-auto">
+            <div className="col-span-2 flex h-11 w-full rounded-[8px] border border-stone-200 bg-white p-1 shadow-sm sm:col-auto sm:w-auto">
               <button
-                className={`flex flex-1 items-center justify-center gap-2 rounded-[6px] px-3 text-xs font-bold transition sm:flex-none ${mode === "overview" ? "bg-primary text-white" : "text-on-surface-variant"}`}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-[6px] px-3 text-xs font-bold transition sm:flex-none ${mode === "overview" ? "bg-[#18191B] text-amber-400 font-bold shadow-xs" : "text-stone-600 hover:text-neutral-900 font-medium"}`}
                 onClick={() => setMode("overview")}
               >
                 <Icon name="dashboard" className="text-base" />
                 Overview
               </button>
               <button
-                className={`flex flex-1 items-center justify-center gap-2 rounded-[6px] px-3 text-xs font-bold transition sm:flex-none ${mode === "list" ? "bg-primary text-white" : "text-on-surface-variant"}`}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-[6px] px-3 text-xs font-bold transition sm:flex-none ${mode === "list" ? "bg-[#18191B] text-amber-400 font-bold shadow-xs" : "text-stone-600 hover:text-neutral-900 font-medium"}`}
                 onClick={() => setMode("list")}
               >
                 <Icon name="format_list_bulleted" className="text-base" />
@@ -435,7 +458,7 @@ export default function FinanceApi() {
         </div>
       )}
       {notice && (
-        <div className="rounded-[8px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold text-primary">
+        <div className="rounded-[8px] border border-stone-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-800">
           {notice}
         </div>
       )}
@@ -452,8 +475,8 @@ export default function FinanceApi() {
           Memuat periode tagihan...
         </div>
       ) : !activePeriod ? (
-        <section className="rounded-[8px] border border-dashed border-emerald-300 bg-white px-6 py-16 text-center shadow-soft">
-          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-primary">
+        <section className="rounded-[8px] border border-dashed border-amber-300 bg-white px-6 py-16 text-center shadow-soft">
+          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-100 text-neutral-950 font-bold">
             <Icon name="receipt_long" className="text-2xl" />
           </span>
           <h2 className="mt-5 text-xl font-bold">
@@ -478,28 +501,58 @@ export default function FinanceApi() {
         </section>
       ) : (
         <>
-          <section className="flex flex-col gap-3 rounded-[8px] border border-emerald-100 bg-white px-4 py-3 shadow-soft sm:flex-row sm:items-center sm:justify-between">
+          <section className="flex flex-col gap-3 rounded-xl border border-outline-variant bg-white p-3.5 shadow-soft sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap items-center gap-3">
-              <span className="rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-white">
-                {formatMonth(activePeriod.month)}
-              </span>
+              <div className="flex items-center rounded-lg border border-outline-variant bg-surface-container-low p-0.5">
+                <button
+                  className="icon-button h-8 w-8 rounded disabled:opacity-30 disabled:pointer-events-none"
+                  onClick={() => prevPeriod && setSelectedPeriodId(prevPeriod.id)}
+                  disabled={!prevPeriod}
+                  title={prevPeriod ? `Periode Sebelumnya: ${formatMonth(prevPeriod.month)}` : "Tidak ada periode sebelumnya"}
+                >
+                  <Icon name="chevron_left" className="text-sm" />
+                </button>
+
+                <select
+                  className="h-8 rounded bg-transparent px-2 text-xs font-bold text-on-surface outline-none cursor-pointer"
+                  value={activePeriod.id}
+                  onChange={(e) => setSelectedPeriodId(e.target.value)}
+                >
+                  {sortedPeriods.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {formatMonth(p.month)} ({p.invoice_count} tagihan)
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  className="icon-button h-8 w-8 rounded disabled:opacity-30 disabled:pointer-events-none"
+                  onClick={() => nextPeriod && setSelectedPeriodId(nextPeriod.id)}
+                  disabled={!nextPeriod}
+                  title={nextPeriod ? `Periode Berikutnya: ${formatMonth(nextPeriod.month)}` : "Tidak ada periode berikutnya"}
+                >
+                  <Icon name="chevron_right" className="text-sm" />
+                </button>
+              </div>
+
               <span className="text-xs text-on-surface-variant">
                 Jatuh tempo{" "}
-                {longDate.format(new Date(`${activePeriod.due_date}T12:00:00`))}
+                <strong className="text-on-surface">{longDate.format(new Date(`${activePeriod.due_date}T12:00:00`))}</strong>
               </span>
               <Badge
-                tone={activePeriod.status === "OPEN" ? "success" : "neutral"}
+                tone={activePeriod.status === "ACTIVE" || activePeriod.status === "OPEN" ? "success" : "neutral"}
               >
-                {activePeriod.status === "OPEN" ? "Periode Aktif" : "Ditutup"}
+                {activePeriod.status === "ACTIVE" || activePeriod.status === "OPEN" ? "Periode Aktif" : "Ditutup"}
               </Badge>
             </div>
+
             <button
-              className="secondary-button w-full rounded-[8px] px-3 text-[11px] sm:h-9 sm:w-auto"
-              disabled={synchronize.isPending || activePeriod.status !== "OPEN"}
+              className="secondary-button w-full sm:w-auto h-8 px-3 text-xs"
+              disabled={synchronize.isPending || (activePeriod.status !== "ACTIVE" && activePeriod.status !== "OPEN")}
               onClick={() => synchronize.mutate()}
             >
-              <Icon name="sync" className="text-base" />
-              Sinkronkan Rombel
+              <Icon name="sync" className="text-xs" />
+              <span>{synchronize.isPending ? "Sinkronisasi..." : "Sinkronkan Rombel"}</span>
             </button>
           </section>
 
@@ -512,7 +565,7 @@ export default function FinanceApi() {
                     "Total Tagihan",
                     rupiah.format(metrics.billed),
                     `${invoices.data?.length || 0} invoice siswa`,
-                    "from-emerald-700 to-emerald-500",
+                    "from-[#18191B] to-[#2B2D31]",
                     "text-white",
                   ],
                   [
@@ -520,7 +573,7 @@ export default function FinanceApi() {
                     "Sudah Dibayar",
                     rupiah.format(metrics.paid),
                     "Transaksi terverifikasi",
-                    "from-emerald-50 to-teal-50",
+                    "from-amber-50/70 to-stone-50",
                     "text-primary",
                   ],
                   [
@@ -536,13 +589,13 @@ export default function FinanceApi() {
                     "Menunggu Verifikasi",
                     rupiah.format(metrics.pending),
                     `${metrics.pendingCount} transaksi perlu ditinjau`,
-                    "from-cyan-50 to-emerald-50",
-                    "text-[#00646f]",
+                    "from-stone-50 to-amber-50",
+                    "text-amber-900",
                   ],
                 ].map(([icon, label, value, note, gradient, tone]) => (
                   <article
                     key={label}
-                    className={`min-h-[144px] rounded-[8px] border border-emerald-100 bg-gradient-to-br ${gradient} p-5 shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift ${tone}`}
+                    className={`min-h-[144px] rounded-[8px] border border-stone-200 bg-gradient-to-br ${gradient} p-5 shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift ${tone}`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -574,7 +627,7 @@ export default function FinanceApi() {
                     overdue.slice(0, 6).map((invoice) => (
                       <button
                         key={invoice.id}
-                        className="grid w-full gap-2 border-t border-emerald-100 px-4 py-3 text-left first:border-t-0 hover:bg-emerald-50/50 sm:grid-cols-[1fr_auto] sm:items-center sm:gap-3"
+                        className="grid w-full gap-2 border-t border-stone-200 px-4 py-3 text-left first:border-t-0 hover:bg-amber-50/50 sm:grid-cols-[1fr_auto] sm:items-center sm:gap-3"
                         onClick={() => {
                           setSelectedInvoice(invoice.id);
                           setMode("list");
@@ -622,7 +675,7 @@ export default function FinanceApi() {
                       return (
                         <div
                           key={payment.id}
-                          className="grid gap-3 border-t border-emerald-100 px-4 py-3 first:border-t-0 sm:grid-cols-[1fr_auto] sm:items-center"
+                          className="grid gap-3 border-t border-stone-200 px-4 py-3 first:border-t-0 sm:grid-cols-[1fr_auto] sm:items-center"
                         >
                           <div className="min-w-0">
                             <p className="truncate text-xs font-bold">
@@ -638,7 +691,7 @@ export default function FinanceApi() {
                           </div>
                           <div className="flex flex-wrap gap-1">
                             <button
-                              className="h-8 rounded-[7px] bg-primary px-3 text-[10px] font-bold text-white"
+                              className="h-8 rounded-[7px] bg-amber-400 px-3 text-[10px] font-bold text-neutral-950 shadow-xs"
                               disabled={busy}
                               onClick={() => verifyPayment.mutate(payment)}
                             >
@@ -668,11 +721,11 @@ export default function FinanceApi() {
               </section>
             </>
           ) : (
-            <section className="overflow-hidden rounded-[8px] border border-emerald-100 bg-white shadow-soft">
-              <div className="flex flex-col gap-3 border-b border-emerald-100 p-4 xl:flex-row xl:items-center xl:justify-between">
+            <section className="overflow-hidden rounded-[8px] border border-stone-200 bg-white shadow-soft">
+              <div className="flex flex-col gap-3 border-b border-stone-200 p-4 xl:flex-row xl:items-center xl:justify-between">
                 <div className="flex h-10 w-full rounded-[8px] bg-surface-container-low p-1 sm:w-fit">
                   <button
-                    className={`flex-1 rounded-[6px] px-4 text-xs font-bold sm:flex-none ${tab === "invoices" ? "bg-white text-primary shadow-sm" : "text-on-surface-variant"}`}
+                    className={`flex-1 rounded-[6px] px-4 text-xs font-bold sm:flex-none ${tab === "invoices" ? "bg-white text-neutral-900 font-bold shadow-sm" : "text-on-surface-variant"}`}
                     onClick={() => {
                       setTab("invoices");
                       setStatusFilter("");
@@ -681,7 +734,7 @@ export default function FinanceApi() {
                     Tagihan
                   </button>
                   <button
-                    className={`flex-1 rounded-[6px] px-4 text-xs font-bold sm:flex-none ${tab === "transactions" ? "bg-white text-primary shadow-sm" : "text-on-surface-variant"}`}
+                    className={`flex-1 rounded-[6px] px-4 text-xs font-bold sm:flex-none ${tab === "transactions" ? "bg-white text-neutral-900 font-bold shadow-sm" : "text-on-surface-variant"}`}
                     onClick={() => {
                       setTab("transactions");
                       setStatusFilter("");
@@ -749,14 +802,14 @@ export default function FinanceApi() {
                         <th className="px-4 py-3 text-right">Aksi</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-emerald-100">
+                    <tbody className="divide-y divide-stone-200">
                       {filteredInvoices.map((invoice) => (
                         <Fragment key={invoice.id}>
                           <tr
                             className={
                               selectedInvoice === invoice.id
-                                ? "bg-emerald-50/70"
-                                : "hover:bg-emerald-50/35"
+                                ? "bg-amber-50/70"
+                                : "hover:bg-amber-50/40"
                             }
                           >
                             <td className="px-4 py-3">
@@ -792,7 +845,7 @@ export default function FinanceApi() {
                             <td className="px-4 py-3">
                               <div className="flex justify-end gap-1">
                                 <button
-                                  className="icon-button h-8 w-8 border border-emerald-100"
+                                  className="icon-button h-8 w-8 border border-stone-200"
                                   title="Lihat detail tagihan"
                                   onClick={() =>
                                     setSelectedInvoice((value) =>
@@ -810,7 +863,7 @@ export default function FinanceApi() {
                                   />
                                 </button>
                                 <button
-                                  className="icon-button h-8 w-8 border border-emerald-100 text-primary"
+                                  className="icon-button h-8 w-8 border border-stone-200 text-primary"
                                   title="Catat pembayaran"
                                   disabled={
                                     invoice.outstanding_rupiah -
@@ -869,13 +922,13 @@ export default function FinanceApi() {
                         <th className="px-4 py-3 text-right">Aksi</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-emerald-100">
+                    <tbody className="divide-y divide-stone-200">
                       {filteredTransactions.map((payment) => {
                         const invoice = invoiceById.get(payment.invoice);
                         return (
                           <tr
                             key={payment.id}
-                            className="hover:bg-emerald-50/35"
+                            className="hover:bg-amber-50/40"
                           >
                             <td className="px-4 py-3 text-xs">
                               {longDate.format(
@@ -908,7 +961,7 @@ export default function FinanceApi() {
                               <div className="flex justify-end gap-1">
                                 {payment.proof_url && (
                                   <a
-                                    className="icon-button h-8 w-8 border border-emerald-100"
+                                    className="icon-button h-8 w-8 border border-stone-200"
                                     href={payment.proof_url}
                                     title="Unduh bukti"
                                   >
@@ -921,7 +974,7 @@ export default function FinanceApi() {
                                 {payment.status === "PENDING" && (
                                   <>
                                     <button
-                                      className="h-8 rounded-[7px] bg-primary px-3 text-[10px] font-bold text-white"
+                                      className="h-8 rounded-[7px] bg-amber-400 px-3 text-[10px] font-bold text-neutral-950 shadow-xs"
                                       disabled={busy}
                                       onClick={() =>
                                         verifyPayment.mutate(payment)
@@ -1013,7 +1066,7 @@ export default function FinanceApi() {
                 />
               </label>
             </div>
-            <p className="mt-4 rounded-[8px] bg-emerald-50 p-3 text-[11px] leading-5 text-on-surface-variant">
+            <p className="mt-4 rounded-[8px] bg-amber-50 p-3 text-[11px] leading-5 text-on-surface-variant">
               Invoice dibuat satu kali untuk setiap siswa aktif menggunakan
               snapshot nama, rombel, kategori iuran, dan nominal saat ini.
             </p>
@@ -1365,8 +1418,8 @@ function OverviewPanel({
   children: ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-[8px] border border-emerald-100 bg-white shadow-soft">
-      <header className="flex items-center justify-between border-b border-emerald-100 px-4 py-3">
+    <section className="overflow-hidden rounded-[8px] border border-stone-200 bg-white shadow-soft">
+      <header className="flex items-center justify-between border-b border-stone-200 px-4 py-3">
         <h2 className="flex items-center gap-2 text-sm font-bold">
           <Icon name={icon} className="text-primary" />
           {title}
@@ -1404,9 +1457,9 @@ function Modal({
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <section className="h-[100dvh] w-full max-w-xl overflow-y-auto border border-emerald-100 bg-white p-4 shadow-lift sm:h-auto sm:max-h-[90vh] sm:rounded-[8px] sm:p-6">
+      <section className="h-[100dvh] w-full max-w-xl overflow-y-auto border border-stone-200 bg-white p-4 shadow-lift sm:h-auto sm:max-h-[90vh] sm:rounded-[8px] sm:p-6">
         <header className="mb-5 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-primary">{title}</h2>
+          <h2 className="text-xl font-bold text-amber-500">{title}</h2>
           <button className="icon-button" onClick={onClose} type="button">
             <Icon name="close" />
           </button>
@@ -1435,10 +1488,10 @@ function InvoiceDetail({
   busy: boolean;
 }) {
   return (
-    <div className="session-editor-drawer border-y border-emerald-200 bg-[#f5fbf7] p-3 sm:p-5">
+    <div className="session-editor-drawer border-y border-stone-200 bg-[#FAFAF7] p-3 sm:p-5">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-[10px] font-bold uppercase text-primary">
+          <p className="text-[10px] font-bold uppercase text-amber-500">
             Detail Tagihan
           </p>
           <h3 className="mt-1 text-lg font-bold">
@@ -1482,7 +1535,7 @@ function InvoiceDetail({
         ].map(([label, amount]) => (
           <div
             key={label}
-            className="rounded-[8px] border border-emerald-100 bg-white p-3"
+            className="rounded-[8px] border border-stone-200 bg-white p-3"
           >
             <p className="text-[9px] text-on-surface-variant">{label}</p>
             <p className="mt-1 text-sm font-bold">
@@ -1491,7 +1544,7 @@ function InvoiceDetail({
           </div>
         ))}
       </div>
-      <div className="mt-4 overflow-hidden rounded-[8px] border border-emerald-100 bg-white">
+      <div className="mt-4 overflow-hidden rounded-[8px] border border-stone-200 bg-white">
         <div className="border-b px-4 py-3 text-xs font-bold">
           Histori Cicilan
         </div>
@@ -1499,7 +1552,7 @@ function InvoiceDetail({
           invoice.transactions.map((payment) => (
             <div
               key={payment.id}
-              className="grid gap-3 border-t border-emerald-100 px-4 py-3 first:border-t-0 sm:grid-cols-[1fr_auto_auto] sm:items-center"
+              className="grid gap-3 border-t border-stone-200 px-4 py-3 first:border-t-0 sm:grid-cols-[1fr_auto_auto] sm:items-center"
             >
               <div>
                 <p className="text-xs font-bold">
@@ -1517,7 +1570,7 @@ function InvoiceDetail({
                 {payment.status === "PENDING" && (
                   <>
                     <button
-                      className="h-8 rounded-[7px] bg-primary px-3 text-[10px] font-bold text-white"
+                      className="h-8 rounded-[7px] bg-amber-400 px-3 text-[10px] font-bold text-neutral-950 shadow-xs"
                       disabled={busy}
                       onClick={() => onVerify(payment)}
                     >

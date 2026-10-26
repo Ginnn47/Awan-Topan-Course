@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+﻿import type { CSSProperties, ReactNode } from "react";
 import {
   ArrowRight,
   Banknote,
@@ -98,9 +98,11 @@ const iconMap: Record<string, LucideIcon> = {
 export function Icon({
   name,
   className = "",
+  style,
 }: {
   name: string;
   className?: string;
+  style?: CSSProperties;
 }) {
   const Component = iconMap[name] || Info;
   const size = className.includes("text-4xl")
@@ -117,6 +119,7 @@ export function Icon({
       className={`shrink-0 ${className}`}
       size={size}
       strokeWidth={2}
+      style={style}
     />
   );
 }
@@ -141,16 +144,16 @@ export function Badge({
   tone?: BadgeTone;
 }) {
   const tones: Record<BadgeTone, string> = {
-    success: "bg-primary-container text-on-primary-container",
-    warning: "bg-accent-sand/75 text-on-background",
-    danger: "bg-error-container text-on-error-container",
-    info: "bg-secondary-container text-on-secondary-container",
-    neutral: "bg-surface-variant text-on-surface-variant",
+    success: "bg-amber-100 text-amber-950 border border-amber-300 font-bold",
+    warning: "bg-amber-50 text-amber-900 border border-amber-200",
+    danger: "bg-red-50 text-red-800 border border-red-200",
+    info: "bg-blue-50 text-blue-800 border border-blue-200",
+    neutral: "bg-gray-100 text-gray-800 border border-gray-200",
   };
 
   return (
     <span
-      className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${tones[tone]}`}
+      className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-semibold ${tones[tone]}`}
     >
       {children}
     </span>
@@ -169,13 +172,13 @@ export function PageHeader({
   return (
     <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
       <div className="min-w-0">
-        <p className="mb-2 text-xs font-semibold text-on-surface-variant">
+        <p className="mb-1 text-xs font-bold uppercase tracking-wider text-amber-500">
           Awan Topan Course
         </p>
-        <h2 className="break-words text-[25px] font-bold leading-8 text-primary sm:text-[32px] sm:leading-9">
+        <h2 className="break-words text-[25px] font-bold leading-8 text-on-surface sm:text-[32px] sm:leading-9">
           {title}
         </h2>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-on-surface-variant">
+        <p className="mt-1.5 max-w-3xl text-sm leading-6 text-on-surface-variant">
           {description}
         </p>
       </div>
@@ -199,10 +202,10 @@ export function StatCard({
 }) {
   return (
     <div
-      className={`relative overflow-hidden rounded-[2rem] border p-5 shadow-soft transition hover:scale-[1.02] ${
+      className={`relative overflow-hidden rounded-xl border p-5 shadow-soft transition hover:shadow-lift ${
         highlight
-          ? "border-primary/20 bg-surface-tint text-on-primary"
-          : "border-outline-variant/30 bg-surface-container-lowest text-on-surface"
+          ? "border-primary/40 bg-brand-dark text-white"
+          : "border-outline-variant bg-surface text-on-surface"
       }`}
     >
       {highlight && (
@@ -210,23 +213,24 @@ export function StatCard({
       )}
       <div className="mb-4 flex items-center gap-3">
         <div
-          className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+          className={`flex h-10 w-10 items-center justify-center rounded-lg ${
             highlight
-              ? "bg-primary-container text-on-primary-container"
-              : "bg-secondary-container text-on-secondary-container"
+              ? "bg-amber-400 text-neutral-950 font-bold"
+              : "bg-amber-100 text-amber-900"
           }`}
+          style={highlight ? { backgroundColor: "#F59E0B", color: "#18191B" } : undefined}
         >
           <Icon name={icon} />
         </div>
         <span
-          className={`text-sm font-medium ${highlight ? "text-on-primary/90" : "text-on-surface-variant"}`}
+          className={`text-sm font-semibold ${highlight ? "text-gray-200" : "text-on-surface-variant"}`}
         >
           {label}
         </span>
       </div>
       <div className="text-[32px] font-bold leading-10">{value}</div>
       <div
-        className={`mt-2 flex items-center gap-1 text-xs font-medium ${highlight ? "text-primary-fixed" : "text-secondary"}`}
+        className={`mt-2 flex items-center gap-1 text-xs font-medium ${highlight ? "text-amber-400 font-bold" : "text-on-surface-variant"}`}
       >
         {note}
       </div>

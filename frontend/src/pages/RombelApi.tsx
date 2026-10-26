@@ -70,16 +70,37 @@ const clock = new Intl.DateTimeFormat("id-ID", {
   hour12: false,
 });
 const schools = [
-  "SDN 1 Nganjuk",
-  "SDN Mangundikaran 1",
-  "SMP Negeri 1 Nganjuk",
-  "SMP Negeri 2 Nganjuk",
-  "SMP Negeri 3 Nganjuk",
-  "SMA Negeri 1 Nganjuk",
-  "SMA Negeri 2 Nganjuk",
-  "SMAN 1 Kertosono",
-  "SMAN 1 Tanjunganom",
+  "SDN 1 Ganung Kidul Nganjuk",
+  "SDN 1 Mangundikaran Nganjuk",
+  "SDN 1 Kauman Nganjuk",
+  "SDN 2 Payaman Nganjuk",
+  "SDN 1 Sukomoro Nganjuk",
+  "SMPN 1 Nganjuk",
+  "SMPN 2 Nganjuk",
+  "SMPN 3 Nganjuk",
+  "SMPN 4 Nganjuk",
+  "SMPN 1 Sukomoro",
+  "SMPN 1 Tanjunganom",
+  "SMPN 1 Bagor",
+  "SMPN 1 Loceret",
+  "MTsN 1 Nganjuk",
+  "SMAN 1 Nganjuk",
+  "SMAN 2 Nganjuk",
+  "SMAN 3 Nganjuk",
+  "SMKN 1 Nganjuk",
+  "SMKN 2 Nganjuk",
+  "MAN 1 Nganjuk",
   "MAN 2 Nganjuk",
+];
+
+const JENJANG_OPTIONS = [
+  "SD",
+  "7 SMP",
+  "8 SMP",
+  "9 SMP",
+  "10 SMA",
+  "11 SMA",
+  "12 SMA",
 ];
 function shift(value: string, amount: number) {
   const date = new Date(`${value}T12:00:00`);
@@ -208,8 +229,9 @@ export default function RombelApi() {
       const body = {
         name: draft.name,
         level: draft.level,
+        academic_year: draft.academic_year || "2026/2027",
         default_room: draft.default_room || null,
-        is_active: true,
+        is_active: draft.is_active !== undefined ? draft.is_active : true,
       };
       if (draft.id)
         return apiEnvelope<ClassGroup>(`/api/v1/class-groups/${draft.id}/`, {
@@ -313,8 +335,10 @@ export default function RombelApi() {
               onClick={() =>
                 setClassDraft({
                   name: "",
-                  level: "9 SMP",
+                  level: "7 SMP",
+                  academic_year: "2026/2027",
                   default_room: rooms.data?.[0]?.id,
+                  is_active: true,
                 })
               }
             >
@@ -325,7 +349,7 @@ export default function RombelApi() {
         }
       />
       {notice && (
-        <div className="rounded-[8px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold text-primary">
+        <div className="rounded-[8px] border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-950">
           {notice}
         </div>
       )}
@@ -337,10 +361,10 @@ export default function RombelApi() {
         </div>
       )}
       <div className="grid gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
-        <aside className="min-w-0 self-start overflow-hidden rounded-[8px] border border-emerald-100 bg-white p-3 shadow-soft lg:sticky lg:top-0">
+        <aside className="min-w-0 self-start overflow-hidden rounded-[8px] border border-stone-200 bg-white p-3 shadow-soft lg:sticky lg:top-0">
           <div className="px-2 py-3">
-            <h2 className="text-sm font-bold">Daftar Rombel</h2>
-            <p className="mt-1 text-[10px] text-on-surface-variant">
+            <h2 className="text-sm font-bold text-neutral-900">Daftar Rombel</h2>
+            <p className="mt-1 text-[10px] text-neutral-500">
               {classes.data?.length || 0} rombel aktif
             </p>
           </div>
@@ -348,7 +372,11 @@ export default function RombelApi() {
             {classes.data?.map((item) => (
               <button
                 key={item.id}
-                className={`w-[220px] shrink-0 rounded-[8px] border p-3 text-left transition lg:w-full ${selectedId === item.id ? "border-primary bg-primary text-white shadow-sm" : "border-emerald-100 bg-[#fbfefc] hover:border-primary/30"}`}
+                className={`w-[220px] shrink-0 rounded-[8px] border p-3 text-left transition lg:w-full ${
+                  selectedId === item.id
+                    ? "border-amber-500 bg-[#18191B] text-white shadow-sm ring-1 ring-amber-500/30"
+                    : "border-stone-200 bg-white hover:border-amber-500/40 hover:bg-stone-50/50"
+                }`}
                 onClick={() => {
                   setSelectedId(item.id);
                   setBatchMode(false);
@@ -357,17 +385,38 @@ export default function RombelApi() {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="break-words text-sm font-bold leading-5">
+                    <p
+                      className={`break-words text-sm font-bold leading-5 ${
+                        selectedId === item.id ? "text-white" : "text-neutral-900"
+                      }`}
+                    >
                       {item.name}
                     </p>
+                    {item.subject_name && (
+                      <p
+                        className={`mt-0.5 truncate text-[10px] ${
+                          selectedId === item.id ? "text-stone-300" : "text-stone-500"
+                        }`}
+                      >
+                        {item.subject_name}
+                      </p>
+                    )}
                     <span
-                      className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-[9px] font-bold ${selectedId === item.id ? "bg-white/20 text-white" : "bg-emerald-100 text-primary"}`}
+                      className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-[9px] font-bold ${
+                        selectedId === item.id
+                          ? "bg-amber-400 text-neutral-950"
+                          : "bg-stone-100 text-stone-700"
+                      }`}
                     >
-                      {item.level}
+                      {item.level || "Umum"}
                     </span>
                   </div>
                   <span
-                    className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-bold ${selectedId === item.id ? "bg-white text-primary" : "bg-surface-container-low"}`}
+                    className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-bold ${
+                      selectedId === item.id
+                        ? "bg-white/10 text-white"
+                        : "bg-stone-100 text-stone-600"
+                    }`}
                   >
                     {item.student_count} siswa
                   </span>
@@ -383,17 +432,25 @@ export default function RombelApi() {
             </div>
           ) : (
             <>
-              <section className="rounded-[8px] border border-emerald-100 bg-white p-4 shadow-soft sm:p-5">
+              <section className="rounded-[8px] border border-stone-200 bg-white p-4 shadow-soft sm:p-5">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <p className="text-xs font-semibold text-primary">
-                      Rombongan Belajar
-                    </p>
-                    <h2 className="mt-1 text-2xl font-bold">{selected.name}</h2>
-                    <p className="mt-2 text-xs text-on-surface-variant">
-                      {selected.level} ·{" "}
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold text-amber-900">
+                        {selected.level || "Umum"}
+                      </span>
+                      <span className="text-[10px] font-medium text-stone-400">
+                        Tahun Ajaran {selected.academic_year || "2026/2027"}
+                      </span>
+                    </div>
+                    <h2 className="mt-1 text-2xl font-bold text-neutral-900">
+                      {selected.name}
+                      {selected.subject_name ? ` · ${selected.subject_name}` : ""}
+                    </h2>
+                    <p className="mt-2 text-xs text-stone-500">
                       {selected.default_room_name || "Ruang fleksibel"} ·{" "}
                       {selected.student_count} siswa aktif
+                      {selected.teacher_name ? ` · Pengajar: ${selected.teacher_name}` : ""}
                     </p>
                   </div>
                   {user?.permissions.manage_academics && (
@@ -415,7 +472,7 @@ export default function RombelApi() {
                     </div>
                   )}
                 </div>
-                <div className="mt-5 border-t border-emerald-100 pt-4">
+                <div className="mt-5 border-t border-stone-200 pt-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-xs font-bold uppercase text-on-surface-variant">
                       Kategori Iuran
@@ -428,10 +485,10 @@ export default function RombelApi() {
                     {selected.fee_plans.map((plan) => (
                       <div
                         key={plan.id}
-                        className="rounded-[8px] border border-emerald-100 bg-emerald-50/50 p-3"
+                        className="rounded-[8px] border border-stone-200 bg-stone-50/60 p-3"
                       >
                         <div className="flex items-center justify-between">
-                          <p className="text-xs font-bold text-primary">
+                          <p className="text-xs font-bold text-amber-600">
                             {plan.name}
                           </p>
                           <span className="rounded-full bg-white px-2 py-1 text-[9px] font-bold">
@@ -448,12 +505,12 @@ export default function RombelApi() {
                   </div>
                 </div>
                 {feeOpen && (
-                  <div className="session-editor-drawer mt-4 border-t border-emerald-100 pt-4">
+                  <div className="session-editor-drawer mt-4 border-t border-stone-200 pt-4">
                     <div className="space-y-2">
                       {feeDrafts.map((plan, index) => (
                         <div
                           key={plan.tempId}
-                          className="grid gap-2 rounded-[8px] border bg-[#fbfefc] p-3 sm:grid-cols-[1fr_180px_40px]"
+                          className="grid gap-2 rounded-[8px] border bg-[#FAFAF7] p-3 sm:grid-cols-[1fr_180px_40px]"
                         >
                           <input
                             className="h-10 rounded-[7px] border px-3 text-xs font-semibold"
@@ -614,9 +671,9 @@ export default function RombelApi() {
                 )}
               </section>
 
-              <section className="rounded-[8px] border border-emerald-100 bg-white p-4 shadow-soft sm:p-5">
+              <section className="rounded-[8px] border border-stone-200 bg-white p-4 shadow-soft sm:p-5">
                 <h3 className="flex items-center gap-2 text-sm font-bold">
-                  <Icon name="calendar_today" className="text-primary" />
+                  <Icon name="calendar_today" className="text-amber-500" />
                   Jadwal Ter-assign
                 </h3>
                 {patterns.length === 0 ? (
@@ -628,9 +685,9 @@ export default function RombelApi() {
                     {patterns.map((item) => (
                       <div
                         key={`${item.subject}-${item.start_at}-${item.teacher}`}
-                        className="grid gap-1 rounded-[8px] border border-emerald-100 bg-[#fbfefc] px-3 py-2.5 text-xs sm:grid-cols-[minmax(100px,1fr)_minmax(130px,1fr)_minmax(100px,1fr)] sm:items-center sm:gap-3"
+                        className="grid gap-1 rounded-[8px] border border-stone-200 bg-[#FAFAF7] px-3 py-2.5 text-xs sm:grid-cols-[minmax(100px,1fr)_minmax(130px,1fr)_minmax(100px,1fr)] sm:items-center sm:gap-3"
                       >
-                        <span className="font-bold text-primary">
+                        <span className="font-bold text-amber-600">
                           {item.subject_name}
                         </span>
                         <span>
@@ -647,7 +704,7 @@ export default function RombelApi() {
                 )}
               </section>
 
-              <section className="overflow-hidden rounded-[8px] border border-emerald-100 bg-white shadow-soft">
+              <section className="overflow-hidden rounded-[8px] border border-stone-200 bg-white shadow-soft">
                 <div className="flex flex-col gap-3 border-b p-5 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h3 className="text-sm font-bold">Anggota Rombel</h3>
@@ -710,8 +767,8 @@ export default function RombelApi() {
                                 archived
                                   ? "bg-red-50 opacity-60"
                                   : isExpanded
-                                    ? "bg-emerald-50/70 border-b-0"
-                                    : "hover:bg-emerald-50/40"
+                                    ? "bg-amber-50/50 border-b-0"
+                                    : "hover:bg-stone-50/60"
                               }`}
                             >
                             <td className="px-5 py-3" data-label="Siswa">
@@ -804,7 +861,7 @@ export default function RombelApi() {
                                   ))}
                                 </select>
                               ) : (
-                                <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-bold text-primary">
+                                <span className="rounded-full bg-stone-100 border border-stone-200 px-2.5 py-1 text-[10px] font-bold text-stone-700">
                                   {item.fee_plan_name}
                                 </span>
                               )}
@@ -815,7 +872,7 @@ export default function RombelApi() {
                             >
                               {batchMode ? (
                                 <button
-                                  className={`icon-button ml-auto h-8 w-8 ${archived ? "text-primary" : "text-red-600"}`}
+                                  className={`icon-button ml-auto h-8 w-8 ${archived ? "text-amber-600" : "text-red-600"}`}
                                   onClick={() =>
                                     setBatchRows((items) =>
                                       items.map((row) =>
@@ -839,7 +896,7 @@ export default function RombelApi() {
                                 </button>
                               ) : (
                                 <button
-                                  className={`icon-button ml-auto h-8 w-8 border border-emerald-200 transition ${isExpanded ? "bg-primary text-white shadow-sm" : "bg-emerald-50 text-primary hover:bg-emerald-100"}`}
+                                  className={`icon-button ml-auto h-8 w-8 border border-stone-200 transition ${isExpanded ? "bg-[#18191B] text-amber-400 shadow-sm" : "bg-stone-50 text-neutral-900 hover:bg-stone-100"}`}
                                   onClick={() =>
                                     setRecapStudent((value) =>
                                       value === studentId ? "" : studentId,
@@ -857,8 +914,8 @@ export default function RombelApi() {
                           </tr>
                           {isExpanded && (
                             <tr className="student-recap-row">
-                              <td colSpan={4} className="p-0 border-b border-emerald-100">
-                                <div className="session-editor-drawer border-l-4 border-l-primary bg-[#f8fcf9] p-4 sm:p-5 shadow-inner">
+                              <td colSpan={4} className="p-0 border-b border-stone-200">
+                                <div className="session-editor-drawer border-l-4 border-l-amber-500 bg-[#FAFAF7] p-4 sm:p-5 shadow-inner">
                                   {(() => {
                                     const detail = recap.data?.students.find(
                                       (s) => s.student.id === studentId,
@@ -877,7 +934,7 @@ export default function RombelApi() {
                                       <div>
                                         <div className="flex items-center justify-between">
                                           <div>
-                                            <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                                            <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">
                                               Rekap Bulanan · {month}
                                             </p>
                                             <h4 className="mt-0.5 text-base font-bold text-on-surface">
@@ -885,13 +942,13 @@ export default function RombelApi() {
                                             </h4>
                                             <p className="mt-0.5 text-xs text-on-surface-variant">
                                               {detail.student.school || "Sekolah"} ·{" "}
-                                              <span className="font-semibold text-primary">
+                                              <span className="font-semibold text-amber-600">
                                                 {detail.payment?.fee_plan_name || "Reguler"}
                                               </span>
                                             </p>
                                           </div>
                                           <button
-                                            className="icon-button h-8 w-8 rounded-full border border-emerald-200 bg-white text-on-surface hover:bg-emerald-50"
+                                            className="icon-button h-8 w-8 rounded-full border border-stone-200 bg-white text-on-surface hover:bg-stone-100"
                                             onClick={() => setRecapStudent("")}
                                             title="Tutup Rekap"
                                           >
@@ -899,17 +956,17 @@ export default function RombelApi() {
                                           </button>
                                         </div>
                                         <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
-                                          <div className="rounded-[8px] border border-emerald-100 bg-white p-3 shadow-xs">
+                                          <div className="rounded-[8px] border border-stone-200 bg-white p-3 shadow-xs">
                                             <p className="text-[10px] font-bold uppercase text-on-surface-variant">
                                               Status Pembayaran
                                             </p>
-                                            <p className="mt-2 text-sm font-bold text-primary">
+                                            <p className="mt-2 text-sm font-bold text-neutral-900">
                                               {detail.payment?.status || "UNPAID"}
                                             </p>
                                             {user?.role === "ADMIN" && (
                                               <p className="mt-1 text-[10px] text-on-surface-variant">
                                                 Sisa:{" "}
-                                                <span className="font-semibold text-primary">
+                                                <span className="font-semibold text-amber-600">
                                                   {rupiah.format(
                                                     detail.payment?.outstanding_rupiah ??
                                                       (detail.payment?.amount_due_rupiah ?? 0),
@@ -929,7 +986,7 @@ export default function RombelApi() {
                                           ].map(([label, value]) => (
                                             <div
                                               key={label as string}
-                                              className="rounded-[8px] border border-emerald-100 bg-white p-3 shadow-xs"
+                                              className="rounded-[8px] border border-stone-200 bg-white p-3 shadow-xs"
                                             >
                                               <p className="text-[10px] font-bold uppercase text-on-surface-variant">
                                                 {label}
@@ -1001,31 +1058,38 @@ export default function RombelApi() {
         ))}
       </datalist>
       {classDraft && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 p-0 sm:p-4">
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-0 backdrop-blur-xs sm:p-4">
           <form
-            className="h-[100dvh] w-full max-w-lg overflow-y-auto border bg-white p-4 shadow-lift sm:h-auto sm:max-h-[90vh] sm:rounded-[8px] sm:p-6"
+            className="h-[100dvh] w-full max-w-lg overflow-y-auto border border-stone-200 bg-white p-5 shadow-lift sm:h-auto sm:max-h-[90vh] sm:rounded-[12px] sm:p-6"
             onSubmit={(event) => {
               event.preventDefault();
               classMutation.mutate(classDraft);
             }}
           >
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold">
-                {classDraft.id ? "Edit Rombel" : "Tambah Rombel"}
-              </h2>
+            <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+              <div>
+                <h2 className="text-lg font-bold text-neutral-900">
+                  {classDraft.id ? "Edit Rombel" : "Tambah Rombel"}
+                </h2>
+                <p className="text-xs text-stone-500">
+                  {classDraft.id
+                    ? "Perbarui informasi identitas rombongan belajar"
+                    : "Buat rombongan belajar baru"}
+                </p>
+              </div>
               <button
-                className="icon-button"
+                className="icon-button text-stone-400 hover:text-stone-700"
                 type="button"
                 onClick={() => setClassDraft(null)}
               >
                 <Icon name="close" />
               </button>
             </div>
-            <div className="mt-5 space-y-4">
-              <label className="block text-xs font-bold">
+            <div className="mt-4 space-y-4">
+              <label className="block text-xs font-bold text-neutral-800">
                 Nama Rombel
                 <input
-                  className="mt-2 h-11 w-full rounded-[8px] border px-3 font-normal"
+                  className="mt-1.5 h-10 w-full rounded-[8px] border border-stone-200 bg-white px-3 text-xs font-normal outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                   value={classDraft.name || ""}
                   onChange={(event) =>
                     setClassDraft((item) => ({
@@ -1033,32 +1097,49 @@ export default function RombelApi() {
                       name: event.target.value,
                     }))
                   }
+                  placeholder="Contoh: 7A, 10A, 6 SD"
                   required
                 />
               </label>
-              <label className="block text-xs font-bold">
-                Jenjang
-                <select
-                  className="mt-2 h-11 w-full rounded-[8px] border bg-white px-3 font-normal"
-                  value={classDraft.level || ""}
-                  onChange={(event) =>
-                    setClassDraft((item) => ({
-                      ...item,
-                      level: event.target.value,
-                    }))
-                  }
-                >
-                  {["SD", "9 SMP", "10 SMA", "11 SMA", "12 SMA"].map(
-                    (level) => (
-                      <option key={level}>{level}</option>
-                    ),
-                  )}
-                </select>
-              </label>
-              <label className="block text-xs font-bold">
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block text-xs font-bold text-neutral-800">
+                  Jenjang
+                  <select
+                    className="mt-1.5 h-10 w-full rounded-[8px] border border-stone-200 bg-white px-3 text-xs font-normal outline-none focus:border-amber-500"
+                    value={classDraft.level || "7 SMP"}
+                    onChange={(event) =>
+                      setClassDraft((item) => ({
+                        ...item,
+                        level: event.target.value,
+                      }))
+                    }
+                  >
+                    {JENJANG_OPTIONS.map((level) => (
+                      <option key={level} value={level}>
+                        {level}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-xs font-bold text-neutral-800">
+                  Tahun Ajaran
+                  <input
+                    className="mt-1.5 h-10 w-full rounded-[8px] border border-stone-200 bg-white px-3 text-xs font-normal outline-none focus:border-amber-500"
+                    value={classDraft.academic_year || "2026/2027"}
+                    onChange={(event) =>
+                      setClassDraft((item) => ({
+                        ...item,
+                        academic_year: event.target.value,
+                      }))
+                    }
+                    placeholder="2026/2027"
+                  />
+                </label>
+              </div>
+              <label className="block text-xs font-bold text-neutral-800">
                 Ruang Default
                 <select
-                  className="mt-2 h-11 w-full rounded-[8px] border bg-white px-3 font-normal"
+                  className="mt-1.5 h-10 w-full rounded-[8px] border border-stone-200 bg-white px-3 text-xs font-normal outline-none focus:border-amber-500"
                   value={classDraft.default_room || ""}
                   onChange={(event) =>
                     setClassDraft((item) => ({
@@ -1075,13 +1156,39 @@ export default function RombelApi() {
                   ))}
                 </select>
               </label>
+              {classDraft.id && (
+                <label className="block text-xs font-bold text-neutral-800">
+                  Status Rombel
+                  <select
+                    className="mt-1.5 h-10 w-full rounded-[8px] border border-stone-200 bg-white px-3 text-xs font-normal outline-none focus:border-amber-500"
+                    value={classDraft.is_active ? "active" : "inactive"}
+                    onChange={(event) =>
+                      setClassDraft((item) => ({
+                        ...item,
+                        is_active: event.target.value === "active",
+                      }))
+                    }
+                  >
+                    <option value="active">Aktif</option>
+                    <option value="inactive">Nonaktif (Diarsipkan)</option>
+                  </select>
+                </label>
+              )}
             </div>
-            <div className="mt-6 flex justify-end">
+            <div className="mt-6 flex items-center justify-end gap-2 border-t border-stone-100 pt-4">
               <button
-                className="primary-button rounded-[8px]"
-                disabled={classMutation.isPending}
+                type="button"
+                className="secondary-button h-10 rounded-[8px] px-4 text-xs font-semibold"
+                onClick={() => setClassDraft(null)}
               >
-                <Icon name="save" />
+                Batal
+              </button>
+              <button
+                type="submit"
+                className="primary-button h-10 rounded-[8px] px-5 text-xs font-bold"
+                disabled={classMutation.isPending || !classDraft.name?.trim()}
+              >
+                <Icon name="save" className="text-base" />
                 Simpan Rombel
               </button>
             </div>

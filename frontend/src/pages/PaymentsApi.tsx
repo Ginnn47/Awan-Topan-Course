@@ -95,7 +95,7 @@ export default function PaymentsApi() {
         description="Catat setoran siswa dari rombel yang Anda ampu. Semua pencatatan masuk sebagai pending dan baru mengurangi tagihan setelah disetujui Super Admin."
       />
       {notice && (
-        <div className="rounded-[8px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold text-primary">
+        <div className="rounded-[8px] border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-950">
           {notice}
         </div>
       )}
@@ -120,8 +120,8 @@ export default function PaymentsApi() {
           </p>
         </section>
       ) : (
-        <section className="overflow-hidden rounded-[8px] border border-emerald-100 bg-white shadow-soft">
-          <div className="flex flex-col gap-3 border-b border-emerald-100 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+        <section className="overflow-hidden rounded-[8px] border border-stone-200 bg-white shadow-soft">
+          <div className="flex flex-col gap-3 border-b border-stone-200 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
             <div>
               <h2 className="text-sm font-bold">Tagihan Rombel Saya</h2>
               <p className="mt-1 text-[10px] text-on-surface-variant">
@@ -138,7 +138,7 @@ export default function PaymentsApi() {
               />
             </label>
           </div>
-          <div className="divide-y divide-emerald-100">
+          <div className="divide-y divide-stone-200">
             {visible.map((invoice) => {
               const open = draft?.invoice === invoice.id;
               const available = Math.max(
@@ -158,7 +158,7 @@ export default function PaymentsApi() {
                       </p>
                     </div>
                     <div>
-                      <span className="rounded-full bg-teal-50 px-2.5 py-1 text-[10px] font-bold text-teal-800">
+                      <span className="rounded-full bg-stone-100 border border-stone-200 px-2.5 py-1 text-[10px] font-bold text-stone-700">
                         {invoice.fee_plan_name_snapshot}
                       </span>
                       <p className="mt-2 text-xs font-bold">
@@ -167,7 +167,7 @@ export default function PaymentsApi() {
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <span
-                        className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${invoice.status === "PAID" ? "bg-emerald-100 text-emerald-700" : invoice.status === "OVERDUE" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-800"}`}
+                        className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${invoice.status === "PAID" ? "bg-amber-100 text-amber-950 border border-amber-300 font-bold" : invoice.status === "OVERDUE" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-800"}`}
                       >
                         {statusLabel[invoice.status] || invoice.status}
                       </span>
@@ -178,7 +178,7 @@ export default function PaymentsApi() {
                       )}
                     </div>
                     <button
-                      className={`secondary-button h-10 w-full rounded-[8px] px-3 text-xs sm:w-auto ${open ? "bg-primary text-white" : ""}`}
+                      className={`secondary-button h-10 w-full rounded-[8px] px-3 text-xs sm:w-auto ${open ? "bg-[#18191B] text-amber-400 border-brand-dark font-bold" : ""}`}
                       disabled={available <= 0}
                       onClick={() =>
                         setDraft(
@@ -204,7 +204,7 @@ export default function PaymentsApi() {
                   </article>
                   {open && draft && (
                     <form
-                      className="session-editor-drawer border-t border-emerald-100 bg-[#f7fcf8] p-4 sm:p-5"
+                      className="session-editor-drawer border-t border-stone-200 bg-[#FAFAF7] p-4 sm:p-5"
                       onSubmit={submit}
                     >
                       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

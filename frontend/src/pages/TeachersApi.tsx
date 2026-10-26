@@ -130,7 +130,7 @@ export default function TeachersApi() {
         }
       />
       {notice && (
-        <div className="rounded-[8px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold text-primary">
+        <div className="rounded-[8px] border border-amber-300 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-950">
           {notice}
         </div>
       )}
@@ -148,8 +148,8 @@ export default function TeachersApi() {
             : "Gagal menonaktifkan pengajar."}
         </div>
       )}
-      <section className="overflow-hidden rounded-[8px] border border-emerald-100 bg-white shadow-soft">
-        <div className="flex flex-col gap-3 border-b border-emerald-100 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+      <section className="overflow-hidden rounded-[8px] border border-outline-variant bg-white shadow-soft">
+        <div className="flex flex-col gap-3 border-b border-outline-variant p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
           <div>
             <h2 className="text-sm font-bold">Daftar Pengajar</h2>
             <p className="mt-1 text-[10px] text-on-surface-variant">
@@ -167,7 +167,7 @@ export default function TeachersApi() {
             />
           </label>
         </div>
-        <div className="divide-y divide-emerald-100">
+        <div className="divide-y divide-outline-variant">
           {visible.map((teacher) => {
             const editing = draft?.id === teacher.id;
             const initials = teacher.full_name
@@ -180,7 +180,7 @@ export default function TeachersApi() {
             return (
               <div key={teacher.id}>
                 <article className="grid gap-3 p-4 sm:grid-cols-[48px_minmax(180px,1fr)_minmax(180px,1.2fr)_auto] sm:items-center sm:p-5">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-primary">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#18191B] text-sm font-bold text-amber-400 shadow-sm">
                     {initials}
                   </div>
                   <div className="min-w-0">
@@ -189,12 +189,12 @@ export default function TeachersApi() {
                         {teacher.full_name}
                       </h3>
                       {teacher.account_role === "ADMIN" && (
-                        <span className="rounded-full bg-primary px-2 py-0.5 text-[9px] font-bold text-white">
+                        <span className="rounded-full bg-brand-dark border border-amber-400/40 px-2 py-0.5 text-[9px] font-bold text-amber-400">
                           Super Admin
                         </span>
                       )}
                       <span
-                        className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${teacher.is_active ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}
+                        className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${teacher.is_active ? "bg-amber-100 text-amber-950 border border-amber-300 font-bold" : "bg-red-50 text-red-700"}`}
                       >
                         {teacher.is_active ? "Aktif" : "Nonaktif"}
                       </span>
@@ -202,7 +202,7 @@ export default function TeachersApi() {
                     <p className="mt-1 break-all text-[10px] text-on-surface-variant">
                       {teacher.email} · {teacher.teacher_code}
                     </p>
-                    <p className="mt-1 text-xs font-semibold text-primary">
+                    <p className="mt-1 text-xs font-semibold text-amber-600">
                       {teacher.specialization || "Belum ada bidang ajar"}
                     </p>
                   </div>
@@ -215,7 +215,7 @@ export default function TeachersApi() {
                         teacher.assigned_classes.map((item) => (
                           <span
                             key={item.id}
-                            className="rounded-full bg-teal-50 px-2.5 py-1 text-[10px] font-bold text-teal-800"
+                            className="rounded-full bg-stone-100 border border-stone-200 px-2.5 py-1 text-[10px] font-bold text-stone-800"
                           >
                             {item.name}
                           </span>
@@ -228,7 +228,7 @@ export default function TeachersApi() {
                     </div>
                   </div>
                   <button
-                    className={`secondary-button h-10 w-full rounded-[8px] px-3 text-xs sm:w-auto ${editing ? "bg-primary text-white" : ""}`}
+                    className={`secondary-button h-10 w-full rounded-[8px] px-3 text-xs sm:w-auto ${editing ? "bg-[#18191B] text-amber-400 border-[#18191B] font-bold" : ""}`}
                     onClick={() => setDraft(editing ? null : toDraft(teacher))}
                   >
                     <Icon
@@ -264,7 +264,7 @@ export default function TeachersApi() {
           <div className="h-[100dvh] w-full max-w-3xl overflow-y-auto bg-white p-4 shadow-lift sm:h-auto sm:max-h-[92vh] sm:rounded-[8px] sm:p-6">
             <div className="mb-5 flex items-center justify-between">
               <div>
-                <p className="text-xs font-bold text-primary">Akun Baru</p>
+                <p className="text-xs font-bold text-amber-600">Akun Baru</p>
                 <h2 className="mt-1 text-xl font-bold">Tambah Pengajar</h2>
               </div>
               <button className="icon-button" onClick={() => setDraft(null)}>
@@ -315,7 +315,7 @@ function TeacherEditor({
       className={
         modal
           ? ""
-          : "session-editor-drawer border-t border-emerald-100 bg-[#f7fcf8] p-4 sm:p-5"
+          : "session-editor-drawer border-t border-outline-variant bg-[#FAFAF7] p-4 sm:p-5"
       }
       onSubmit={onSubmit}
     >
@@ -346,7 +346,7 @@ function TeacherEditor({
           </label>
         ))}
       </div>
-      <section className="mt-5 rounded-[8px] border border-emerald-100 bg-white p-4">
+      <section className="mt-5 rounded-[8px] border border-outline-variant bg-white p-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-sm font-bold">Akses Rombel</h3>
@@ -371,7 +371,7 @@ function TeacherEditor({
             return (
               <label
                 key={classGroup.id}
-                className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-[8px] border px-3 py-2 text-xs transition ${checked ? "border-primary bg-emerald-50 text-primary" : "border-outline-variant/50"}`}
+                className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-[8px] border px-3 py-2 text-xs transition ${checked ? "border-amber-500 bg-amber-50 text-amber-950 font-bold" : "border-outline-variant/60 hover:bg-stone-50"}`}
               >
                 <input
                   type="checkbox"

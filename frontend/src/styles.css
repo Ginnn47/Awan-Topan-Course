@@ -1,4 +1,4 @@
-@tailwind base;
+﻿@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -11,8 +11,8 @@
     margin: 0;
     min-width: 320px;
     min-height: 100vh;
-    background: #f6fbf3;
-    color: #181d19;
+    background: #FAFAF7;
+    color: #18191B;
     font-family: "Lexend", sans-serif;
     letter-spacing: 0;
     overflow-x: hidden;
@@ -52,37 +52,113 @@
   }
 
   .glass-panel {
-    background: rgba(255, 255, 255, 0.72);
-    border: 1px solid rgba(255, 255, 255, 0.55);
-    backdrop-filter: blur(16px);
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(229, 231, 235, 0.8);
+    backdrop-filter: blur(12px);
   }
 
   .card {
-    @apply rounded-[2rem] border border-outline-variant/30 bg-surface-container-lowest shadow-soft;
+    @apply rounded-xl border border-outline-variant bg-surface shadow-soft;
   }
 
   .card-soft {
-    @apply rounded-[2rem] border border-surface-variant bg-surface-container-low shadow-soft;
+    @apply rounded-xl border border-outline-variant/60 bg-surface-container-low shadow-soft;
   }
 
   .pill-input {
-    @apply w-full rounded-full border border-outline-variant bg-surface-tint/5 px-5 py-3 text-sm text-on-surface outline-none transition focus:border-primary focus:ring-1 focus:ring-primary;
+    @apply w-full rounded-full border border-outline-variant bg-white px-5 py-3 text-sm text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20;
   }
 
+  /* Explicit Yellow-Black Brand Rules */
   .primary-button {
-    @apply inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-on-primary shadow-sm transition hover:scale-[1.02] hover:brightness-110;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs sm:text-sm font-bold shadow-sm transition active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none;
+    background-color: #F59E0B !important;
+    color: #18191B !important;
+    border-color: #F59E0B !important;
+  }
+
+  .primary-button:hover:not(:disabled) {
+    background-color: #D97706 !important;
+    color: #18191B !important;
+  }
+
+  .primary-button:active:not(:disabled) {
+    background-color: #B45309 !important;
+    color: #18191B !important;
+  }
+
+  .bg-primary {
+    background-color: #F59E0B !important;
+  }
+
+  .text-primary {
+    color: #D97706 !important;
+  }
+
+  .border-primary {
+    border-color: #F59E0B !important;
+  }
+
+  .bg-brand-dark {
+    background-color: #18191B !important;
+  }
+
+  .text-brand-dark {
+    color: #18191B !important;
+  }
+
+  .text-on-primary {
+    color: #18191B !important;
+  }
+
+  .bg-primary-container {
+    background-color: #FEF3C7 !important;
+  }
+
+  .text-on-primary-container {
+    color: #78350F !important;
   }
 
   .secondary-button {
-    @apply inline-flex items-center justify-center gap-2 rounded-full bg-secondary-container px-5 py-3 text-sm font-semibold text-on-secondary-container transition hover:brightness-95;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-outline-variant bg-white px-4 py-2.5 text-xs sm:text-sm font-semibold text-on-surface transition hover:bg-surface-container-low active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none;
   }
 
   .icon-button {
-    @apply flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition hover:scale-[1.02] hover:bg-surface-tint/20 hover:text-primary;
+    @apply flex h-9 w-9 items-center justify-center rounded-lg text-on-surface-variant transition hover:bg-surface-container hover:text-on-surface;
   }
 
   .table-cell {
     @apply px-4 py-3 text-left text-sm;
+  }
+
+  .slot-scroll-container {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    padding-bottom: 0.5rem;
+    padding-top: 0.25rem;
+  }
+
+  .slot-scroll-container::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .slot-scroll-container::-webkit-scrollbar-track {
+    background: #F3F4F6;
+    border-radius: 9999px;
+  }
+
+  .slot-scroll-container::-webkit-scrollbar-thumb {
+    background: #D1D5DB;
+    border-radius: 9999px;
+  }
+
+  .slot-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: #9CA3AF;
   }
 
   .mobile-data-scroll {
@@ -101,14 +177,12 @@
 
   .primary-button,
   .secondary-button {
-    min-height: 44px;
-    padding-left: 1rem;
-    padding-right: 1rem;
+    min-height: 42px;
   }
 
   .icon-button {
-    min-height: 44px;
-    min-width: 44px;
+    min-height: 40px;
+    min-width: 40px;
   }
 
   .mobile-data-scroll {
@@ -121,8 +195,8 @@
     display: block;
     width: 100%;
     padding: 0.4rem 0.75rem;
-    background: #f0f5ee;
-    color: #3f4941;
+    background: #F5F5F3;
+    color: #525866;
     content: "Geser tabel untuk melihat kolom lainnya";
     font-size: 0.625rem;
     font-weight: 600;
@@ -154,9 +228,9 @@
     display: grid;
     width: 100%;
     overflow: hidden;
-    border: 1px solid #d9e5dc;
+    border: 1px solid #E5E7EB;
     border-radius: 8px;
-    box-shadow: 0 3px 12px rgb(24 29 25 / 5%);
+    box-shadow: 0 1px 4px rgba(24, 25, 27, 0.04);
   }
 
   .student-list-responsive .student-list-row > td {
@@ -166,7 +240,7 @@
     gap: 0.75rem;
     width: 100%;
     padding: 0.6rem 0.75rem !important;
-    border-bottom: 1px solid #edf2ee;
+    border-bottom: 1px solid #F3F4F6;
     text-align: left !important;
   }
 
@@ -175,7 +249,7 @@
   }
 
   .student-list-responsive .student-list-row > td::before {
-    color: #5f6b62;
+    color: #6B7280;
     content: attr(data-label);
     font-size: 0.625rem;
     font-weight: 700;

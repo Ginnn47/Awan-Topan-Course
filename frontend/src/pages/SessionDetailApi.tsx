@@ -41,7 +41,7 @@ const statusLabel: Record<AttendanceRow["status"], string> = {
 };
 const statusTone: Record<AttendanceRow["status"], string> = {
   UNSET: "bg-gray-100 text-gray-700",
-  PRESENT: "bg-emerald-100 text-emerald-700",
+  PRESENT: "bg-amber-100 text-amber-950 border border-amber-300 font-bold",
   PERMIT: "bg-blue-100 text-blue-700",
   SICK: "bg-amber-100 text-amber-700",
   ABSENT: "bg-red-100 text-red-700",
@@ -320,7 +320,7 @@ export default function SessionDetailApi() {
   return (
     <div className="space-y-5">
       <div className="text-xs text-on-surface-variant">
-        <Link className="font-bold text-primary" to="/course">
+        <Link className="font-bold text-amber-600 hover:text-amber-700" to="/course">
           Schedules
         </Link>
         <span className="mx-2">›</span>
@@ -399,7 +399,7 @@ export default function SessionDetailApi() {
         </div>
       )}
       {notice && (
-        <div className="flex items-center justify-between rounded-[8px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold text-primary">
+        <div className="flex items-center justify-between rounded-[8px] border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-950">
           <span>{notice}</span>
           <button onClick={() => setNotice("")}>
             <Icon name="close" className="text-base" />
@@ -416,19 +416,19 @@ export default function SessionDetailApi() {
                 Guru wajib mengisi deskripsi materi pembelajaran dan seluruh absensi siswa sebelum dapat menyelesaikan sesi.
               </p>
               <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
-                <div className={`rounded border p-2 ${notes.topic.trim() ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-800 font-bold"}`}>
+                <div className={`rounded border p-2 ${notes.topic.trim() ? "border-amber-200 bg-amber-50 text-amber-950 font-bold" : "border-amber-200 bg-amber-50 text-amber-800 font-bold"}`}>
                   <p className="text-[10px] uppercase font-bold">Topik</p>
                   <p className="font-semibold">{notes.topic.trim() ? "Terisi" : "Wajib Diisi"}</p>
                 </div>
-                <div className={`rounded border p-2 ${notes.material_description.trim() ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-red-300 bg-red-100 text-red-900 font-bold ring-1 ring-red-400"}`}>
+                <div className={`rounded border p-2 ${notes.material_description.trim() ? "border-amber-200 bg-amber-50 text-amber-950 font-bold" : "border-red-300 bg-red-100 text-red-900 font-bold ring-1 ring-red-400"}`}>
                   <p className="text-[10px] uppercase font-bold">Deskripsi Materi</p>
                   <p className="font-semibold">{notes.material_description.trim() ? "Terisi" : "WAJIB DIISI"}</p>
                 </div>
-                <div className={`rounded border p-2 ${(!counts.UNSET || counts.UNSET === 0) ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-red-300 bg-red-100 text-red-900 font-bold ring-1 ring-red-400"}`}>
+                <div className={`rounded border p-2 ${(!counts.UNSET || counts.UNSET === 0) ? "border-amber-200 bg-amber-50 text-amber-950 font-bold" : "border-red-300 bg-red-100 text-red-900 font-bold ring-1 ring-red-400"}`}>
                   <p className="text-[10px] uppercase font-bold">Absensi Siswa</p>
                   <p className="font-semibold">{(!counts.UNSET || counts.UNSET === 0) ? "Lengkap" : `${counts.UNSET} Belum Diisi`}</p>
                 </div>
-                <div className={`rounded border p-2 ${(!notesDirty && !attendanceDirty) ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-800 font-bold"}`}>
+                <div className={`rounded border p-2 ${(!notesDirty && !attendanceDirty) ? "border-amber-200 bg-amber-50 text-amber-950 font-bold" : "border-amber-200 bg-amber-50 text-amber-800 font-bold"}`}>
                   <p className="text-[10px] uppercase font-bold">Status Simpan</p>
                   <p className="font-semibold">{(!notesDirty && !attendanceDirty) ? "Tersimpan" : "Belum Disimpan"}</p>
                 </div>
@@ -452,9 +452,9 @@ export default function SessionDetailApi() {
         </div>
       )}
 
-      <nav className="sticky top-0 z-20 grid grid-cols-2 gap-1 rounded-[8px] border border-emerald-200 bg-white/95 p-1.5 shadow-soft backdrop-blur-xl xl:hidden">
+      <nav className="sticky top-0 z-20 grid grid-cols-2 gap-1 rounded-[8px] border border-stone-200 bg-white/95 p-1.5 shadow-soft backdrop-blur-xl xl:hidden">
         <button
-          className={`flex min-h-11 items-center justify-center gap-2 rounded-[7px] px-2 text-xs font-bold ${mobileSection === "details" ? "bg-primary text-white" : "text-on-surface-variant"}`}
+          className={`flex min-h-11 items-center justify-center gap-2 rounded-[7px] px-2 text-xs font-bold ${mobileSection === "details" ? "bg-brand-dark text-amber-400 font-bold" : "text-on-surface-variant"}`}
           onClick={() => setMobileSection("details")}
         >
           <Icon name="info" className="text-base" />
@@ -462,13 +462,13 @@ export default function SessionDetailApi() {
           {notesDirty && <span className="h-2 w-2 rounded-full bg-amber-400" />}
         </button>
         <button
-          className={`flex min-h-11 items-center justify-center gap-2 rounded-[7px] px-2 text-xs font-bold ${mobileSection === "attendance" ? "bg-primary text-white" : "text-on-surface-variant"}`}
+          className={`flex min-h-11 items-center justify-center gap-2 rounded-[7px] px-2 text-xs font-bold ${mobileSection === "attendance" ? "bg-brand-dark text-amber-400 font-bold" : "text-on-surface-variant"}`}
           onClick={() => setMobileSection("attendance")}
         >
           <Icon name="groups" className="text-base" />
           Absensi
           <span
-            className={`rounded-full px-1.5 py-0.5 text-[9px] ${mobileSection === "attendance" ? "bg-white/20 text-white" : "bg-emerald-100 text-primary"}`}
+            className={`rounded-full px-1.5 py-0.5 text-[9px] ${mobileSection === "attendance" ? "bg-white/20 text-white" : "bg-amber-100 text-neutral-950 font-bold"}`}
           >
             {attendance.length}
           </span>
@@ -479,11 +479,11 @@ export default function SessionDetailApi() {
         <main
           className={`${mobileSection === "details" ? "block" : "hidden"} min-w-0 space-y-5 xl:block`}
         >
-          <section className="overflow-hidden rounded-[8px] border border-emerald-100 bg-white shadow-soft">
-            <div className="bg-gradient-to-r from-[#dff5e8] via-[#eef8ef] to-[#e5f2e9] p-4 sm:p-6">
+          <section className="overflow-hidden rounded-[8px] border border-stone-200 bg-white shadow-soft">
+            <div className="border-b border-outline-variant bg-gradient-to-r from-amber-50/80 via-stone-50 to-amber-100/40 p-4 sm:p-6">
               <div className="flex flex-col justify-between gap-5 sm:flex-row">
                 <div>
-                  <span className="rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-bold text-primary">
+                  <span className="rounded-full bg-amber-100 border border-amber-300 px-3 py-1 text-[10px] font-bold text-amber-950">
                     {detail.occurrence_status === "COMPLETED"
                       ? "Completed Session"
                       : "Active Session"}
@@ -491,7 +491,7 @@ export default function SessionDetailApi() {
                   <h2 className="mt-4 text-2xl font-bold">
                     {detail.subject_name}
                   </h2>
-                  <p className="mt-1 text-sm font-semibold text-primary">
+                  <p className="mt-1 text-sm font-semibold text-amber-600">
                     {detail.class_name}
                   </p>
                 </div>
@@ -529,11 +529,11 @@ export default function SessionDetailApi() {
           {editorOpen && (
             <section
               id="session-schedule-editor"
-              className="session-editor-drawer rounded-[8px] border border-emerald-200 bg-white p-4 shadow-soft sm:p-5"
+              className="session-editor-drawer rounded-[8px] border border-stone-200 bg-white p-4 shadow-soft sm:p-5"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-bold text-primary">
+                  <p className="text-xs font-bold text-amber-600">
                     Editor Jadwal
                   </p>
                   <h3 className="mt-1 text-lg font-bold">
@@ -608,10 +608,10 @@ export default function SessionDetailApi() {
             </section>
           )}
 
-          <section className="rounded-[8px] border border-emerald-100 bg-white p-4 shadow-soft sm:p-5">
+          <section className="rounded-[8px] border border-stone-200 bg-white p-4 shadow-soft sm:p-5">
             <div className="flex items-center justify-between">
               <h2 className="flex items-center gap-3 text-lg font-bold">
-                <Icon name="menu_book" className="text-primary" />
+                <Icon name="menu_book" className="text-amber-500" />
                 Catatan Materi
               </h2>
               <label
@@ -631,13 +631,13 @@ export default function SessionDetailApi() {
               </label>
             </div>
             {uploadMutation.isPending && (
-              <div className="mt-3 flex items-center gap-2 rounded-[8px] border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-primary">
+              <div className="mt-3 flex items-center gap-2 rounded-[8px] border border-stone-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-950">
                 <Icon name="progress_activity" className="animate-spin text-base" />
                 Mengunggah berkas lampiran...
               </div>
             )}
             {detail.attachments && detail.attachments.length > 0 && (
-              <div className="mt-4 border-t border-emerald-100 pt-3">
+              <div className="mt-4 border-t border-stone-200 pt-3">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
                   Berkas Lampiran ({detail.attachments.length})
                 </p>
@@ -645,7 +645,7 @@ export default function SessionDetailApi() {
                   {detail.attachments.map((att) => (
                     <div
                       key={att.id}
-                      className="flex items-center justify-between gap-3 rounded-[8px] border border-emerald-100 bg-[#f8fcf9] p-3 text-xs"
+                      className="flex items-center justify-between gap-3 rounded-[8px] border border-stone-200 bg-[#FAFAF7] p-3 text-xs"
                     >
                       <div className="flex min-w-0 items-center gap-2">
                         <Icon
@@ -654,7 +654,7 @@ export default function SessionDetailApi() {
                               ? "picture_as_pdf"
                               : "image"
                           }
-                          className="shrink-0 text-lg text-primary"
+                          className="shrink-0 text-lg text-amber-500"
                         />
                         <div className="min-w-0">
                           <p
@@ -674,7 +674,7 @@ export default function SessionDetailApi() {
                             href={att.file || (att as { url?: string }).url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="icon-button h-8 w-8 hover:bg-emerald-100"
+                            className="icon-button h-8 w-8 hover:bg-amber-100"
                             title="Unduh / Buka berkas"
                           >
                             <Icon name="download" className="text-base" />
@@ -782,7 +782,7 @@ export default function SessionDetailApi() {
               {detail.permissions.can_edit && (
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <p
-                    className={`text-[10px] font-bold ${notesDirty ? "text-amber-700" : "text-emerald-700"}`}
+                    className={`text-[10px] font-bold ${notesDirty ? "text-amber-700" : "text-amber-800"}`}
                   >
                     {notesDirty
                       ? "Ada perubahan belum disimpan"
@@ -803,7 +803,7 @@ export default function SessionDetailApi() {
         </main>
 
         <aside
-          className={`${mobileSection === "attendance" ? "block" : "hidden"} min-w-0 self-start overflow-hidden rounded-[8px] border border-emerald-100 bg-white shadow-soft xl:sticky xl:top-0 xl:block`}
+          className={`${mobileSection === "attendance" ? "block" : "hidden"} min-w-0 self-start overflow-hidden rounded-[8px] border border-stone-200 bg-white shadow-soft xl:sticky xl:top-0 xl:block`}
         >
           <div className="border-b bg-white p-4 sm:p-5 xl:static">
             <div className="flex items-start justify-between">
@@ -814,7 +814,7 @@ export default function SessionDetailApi() {
                 </p>
               </div>
               <div className="shrink-0 text-right">
-                <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[9px] font-bold text-primary">
+                <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[9px] font-bold text-amber-900">
                   ABSENSI
                 </span>
                 <p className="mt-2 text-[9px] font-bold text-amber-700">
@@ -832,7 +832,7 @@ export default function SessionDetailApi() {
               />
             </div>
             <div className="mt-3 grid grid-cols-2 gap-1.5 text-center text-[9px] font-bold sm:grid-cols-4 sm:gap-1">
-              <span className="rounded bg-emerald-50 p-1.5 text-emerald-700">
+              <span className="rounded bg-amber-50 p-1.5 text-amber-800">
                 {counts.PRESENT || 0} Hadir
               </span>
               <span className="rounded bg-blue-50 p-1.5 text-blue-700">
@@ -852,7 +852,7 @@ export default function SessionDetailApi() {
                 key={item.id}
                 className="grid grid-cols-[36px_minmax(0,1fr)] items-center gap-x-3 gap-y-2 py-3"
               >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-[10px] font-bold text-primary">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-[10px] font-bold text-neutral-950">
                   {item.student_name_snapshot
                     .split(" ")
                     .slice(0, 2)
@@ -899,7 +899,7 @@ export default function SessionDetailApi() {
           {detail.permissions.can_edit && (
             <div className="sticky bottom-0 z-10 border-t bg-white/95 p-4 backdrop-blur-xl">
               <p
-                className={`mb-3 text-center text-[10px] font-bold ${attendanceDirty ? "text-amber-700" : "text-emerald-700"}`}
+                className={`mb-3 text-center text-[10px] font-bold ${attendanceDirty ? "text-amber-700" : "text-amber-800"}`}
               >
                 {attendanceDirty
                   ? "Perubahan absensi belum disimpan"

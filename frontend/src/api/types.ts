@@ -71,6 +71,11 @@ export interface ClassGroup {
   id: string;
   name: string;
   level: string;
+  academic_year?: string;
+  subject_id?: string | null;
+  subject_name?: string | null;
+  teacher_id?: string | null;
+  teacher_name?: string | null;
   default_room: string | null;
   default_room_name: string;
   is_active: boolean;
