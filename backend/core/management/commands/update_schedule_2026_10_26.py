@@ -256,17 +256,16 @@ class Command(BaseCommand):
                 sub = subjects_cache[item["subject_code"]]
                 tp = teachers_cache[item["teacher_code"]]
 
-                # Unique together is ('name', 'subject')
                 cg, cg_created = ClassGroup.objects.using(db).get_or_create(
                     name=c_name,
-                    subject=sub,
                     defaults={
+                        "subject": sub,
                         "teacher": tp,
                         "room": "",  # Unassigned / belum ditentukan sesuai spesifikasi
                         "is_active": True,
                     },
                 )
-                class_groups_cache[(c_name, item["subject_code"])] = cg
+                class_groups_cache[c_name] = cg
                 if cg_created:
                     self.stdout.write(f"   + Rombel baru dibuat: {c_name} - {sub.name} (Wali: {tp})")
                 else:
@@ -276,7 +275,8 @@ class Command(BaseCommand):
             self.stdout.write("\n[6] Menerapkan 7 Assignment Jadwal pada 26 Oktober 2026...")
             created_schedules = []
             for item in RAW_SCHEDULE_DATA:
-                cg = class_groups_cache[(item["class_name"], item["subject_code"])]
+                cg = class_groups_cache[item["class_name"]]
+                sub = subjects_cache[item["subject_code"]]
                 tp = teachers_cache[item["teacher_code"]]
                 st = item["start_time"]
                 et = item["end_time"]
@@ -287,6 +287,7 @@ class Command(BaseCommand):
                     date=TARGET_DATE,
                     start_time=st,
                     defaults={
+                        "subject": sub,
                         "end_time": et,
                         "teacher": tp,
                         "status": Schedule.Status.SCHEDULED,

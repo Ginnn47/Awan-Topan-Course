@@ -65,16 +65,45 @@ def serialize_fee_plan(plan: FeePlan) -> dict:
     }
 
 
+def _infer_class_level(name: str) -> str:
+    n = name.upper().strip()
+    if "SD" in n or n.startswith("6"):
+        return "SD"
+    if n.startswith("7"):
+        return "7 SMP"
+    if n.startswith("8"):
+        return "8 SMP"
+    if n.startswith("9"):
+        return "9 SMP"
+    if n.startswith("10"):
+        return "10 SMA"
+    if n.startswith("11"):
+        return "11 SMA"
+    if n.startswith("12"):
+        return "12 SMA"
+    return "Umum"
+
+
 def serialize_class_group(cg: ClassGroup) -> dict:
     active_plans = [
         serialize_fee_plan(fp)
         for fp in cg.fee_plans.filter(is_active=True).order_by("name")
     ]
     student_count = cg.students.filter(enrollment__is_active=True).count()
+    teacher_name = None
+    if getattr(cg, "teacher", None) and getattr(cg.teacher, "user", None):
+        teacher_name = cg.teacher.user.get_full_name() or cg.teacher.user.username
+    subject_name = cg.subject.name if getattr(cg, "subject", None) else None
+
     return {
         "id": str(cg.id),
         "name": cg.name,
-        "level": cg.name,
+        "level": _infer_class_level(cg.name),
+        "academic_year": "2026/2027",
+        "subject_id": str(cg.subject_id) if cg.subject_id else None,
+        "subject_name": subject_name,
+        "teacher_id": str(cg.teacher_id) if cg.teacher_id else None,
+        "teacher_name": teacher_name,
         "default_room": cg.room or None,
         "default_room_name": cg.room or "Ruang 101",
         "is_active": cg.is_active,
@@ -153,8 +182,8 @@ def v1_class_groups(request):
         else:
             teacher = TeacherProfile.objects.first()
 
-        # Check existing class group with same name and subject
-        existing = ClassGroup.objects.filter(name__iexact=name, subject=subject).first()
+        # Check existing class group with same name
+        existing = ClassGroup.objects.filter(name__iexact=name).first()
         if existing:
             if existing.is_active:
                 return api_error(f"Rombel dengan nama '{name}' sudah ada.", code="DUPLICATE_NAME", status=400)
@@ -162,6 +191,10 @@ def v1_class_groups(request):
                 existing.is_active = True
                 if room:
                     existing.room = room
+                if subject:
+                    existing.subject = subject
+                if teacher:
+                    existing.teacher = teacher
                 existing.save()
                 return api_success(serialize_class_group(existing), status=201)
 
@@ -214,6 +247,13 @@ def v1_class_group_detail(request, class_group_id):
             cg.room = body.get("default_room") or ""
         elif "room" in body:
             cg.room = body.get("room") or ""
+
+        if "teacher" in body or "teacher_id" in body:
+            t_id = body.get("teacher") or body.get("teacher_id")
+            if t_id:
+                tp = TeacherProfile.objects.filter(pk=t_id).first()
+                if tp:
+                    cg.teacher = tp
 
         if "is_active" in body:
             cg.is_active = bool(body["is_active"])

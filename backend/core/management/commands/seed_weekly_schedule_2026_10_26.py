@@ -54,9 +54,7 @@ ROOM_MAPPING = {
     "10B": "Ruang Gamma",
     "11A": "Ruang 301",
     "11B": "Ruang 302",
-    "11": "Ruang Studio",
     "12": "Ruang Audiovisual",
-    "11-MAT-A": "Ruang 101",
 }
 
 # Master Teacher mapping
@@ -256,7 +254,7 @@ WEEKLY_SCHEDULE_DATA = [
         "day": "SELASA",
         "start_time": time(17, 0),
         "end_time": time(18, 45),
-        "class_name": "11",
+        "class_name": "11A",
         "subject_code": "FISIKA",
         "student_count": 11,
         "teacher_code": "T",
@@ -266,7 +264,7 @@ WEEKLY_SCHEDULE_DATA = [
         "day": "SELASA",
         "start_time": time(17, 0),
         "end_time": time(18, 45),
-        "class_name": "11",
+        "class_name": "11B",
         "subject_code": "BIG",
         "student_count": 11,
         "teacher_code": "Ni",
@@ -338,7 +336,7 @@ WEEKLY_SCHEDULE_DATA = [
         "day": "RABU",
         "start_time": time(17, 0),
         "end_time": time(18, 45),
-        "class_name": "11",
+        "class_name": "11A",
         "subject_code": "LATSOL",
         "student_count": 11,
         "teacher_code": "T",
@@ -400,7 +398,7 @@ WEEKLY_SCHEDULE_DATA = [
         "day": "KAMIS",
         "start_time": time(17, 0),
         "end_time": time(18, 45),
-        "class_name": "11",
+        "class_name": "11A",
         "subject_code": "KIMIA",
         "student_count": 11,
         "teacher_code": "T",
@@ -524,7 +522,7 @@ WEEKLY_SCHEDULE_DATA = [
         "day": "SABTU",
         "start_time": time(16, 30),
         "end_time": time(18, 0),
-        "class_name": "11",
+        "class_name": "11B",
         "subject_code": "MTK",
         "student_count": 11,
         "teacher_code": "T",
@@ -607,16 +605,16 @@ class Command(BaseCommand):
             class_groups_cache = {}
             for item in WEEKLY_SCHEDULE_DATA:
                 c_name = item["class_name"]
-                s_code = item["subject_code"]
-                if (c_name, s_code) in class_groups_cache:
+                if c_name in class_groups_cache:
                     continue
+                s_code = item["subject_code"]
                 sub = subjects_cache[s_code]
                 tp = teachers_cache[item["teacher_code"]]
                 room_name = ROOM_MAPPING.get(c_name, "Ruang 101")
                 cg, _ = ClassGroup.objects.using(db).get_or_create(
                     name=c_name,
-                    subject=sub,
                     defaults={
+                        "subject": sub,
                         "teacher": tp,
                         "room": room_name,
                         "is_active": True,
@@ -625,14 +623,15 @@ class Command(BaseCommand):
                 if cg.room != room_name:
                     cg.room = room_name
                     cg.save(update_fields=["room"])
-                class_groups_cache[(c_name, s_code)] = cg
+                class_groups_cache[c_name] = cg
 
             # D. Insert / Update schedules for each batch
             all_created_schedules = []
             for batch_label, dataset in batches:
                 self.stdout.write(f"\n[5] Memproses {len(dataset)} Assignment Jadwal pada {batch_label}...")
                 for idx, item in enumerate(dataset, 1):
-                    cg = class_groups_cache[(item["class_name"], item["subject_code"])]
+                    cg = class_groups_cache[item["class_name"]]
+                    sub = subjects_cache[item["subject_code"]]
                     tp = teachers_cache[item["teacher_code"]]
                     t_date = item["date"]
                     st = item["start_time"]
@@ -644,6 +643,7 @@ class Command(BaseCommand):
                         date=t_date,
                         start_time=st,
                         defaults={
+                            "subject": sub,
                             "end_time": et,
                             "teacher": tp,
                             "status": Schedule.Status.SCHEDULED,
@@ -656,8 +656,8 @@ class Command(BaseCommand):
                         schedule=sched,
                         defaults={
                             "status": SessionRecord.Status.DRAFT,
-                            "topic": f"{cg.subject.name} Kelas {cg.name}",
-                            "material_description": f"Pembahasan materi {cg.subject.name} untuk kelas {cg.name}",
+                            "topic": f"{sub.name} Kelas {cg.name}",
+                            "material_description": f"Pembahasan materi {sub.name} untuk kelas {cg.name}",
                         },
                     )
                     all_created_schedules.append(sched)

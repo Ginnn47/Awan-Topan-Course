@@ -3,7 +3,7 @@ from datetime import datetime, date
 from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -303,11 +303,17 @@ def v1_invoices(request):
 
     period_param = request.GET.get("period")
     if period_param:
-        try:
-            m_date = datetime.strptime(period_param[:7], "%Y-%m").date().replace(day=1)
-            qs = qs.filter(period=m_date)
-        except Exception:
-            qs = qs.none()
+        bp = BillingPeriod.objects.filter(
+            Q(period_id=period_param) | Q(id=int(period_param) if str(period_param).isdigit() else -1)
+        ).first()
+        if bp:
+            qs = qs.filter(period=bp.month)
+        else:
+            try:
+                m_date = datetime.strptime(period_param[:7], "%Y-%m").date().replace(day=1)
+                qs = qs.filter(period=m_date)
+            except Exception:
+                qs = qs.none()
 
     rep_date_param = request.GET.get("reporting_date")
     rep_date = None
@@ -413,11 +419,17 @@ def v1_payment_transactions(request):
 
         period_param = request.GET.get("period")
         if period_param:
-            try:
-                m_date = datetime.strptime(period_param[:7], "%Y-%m").date().replace(day=1)
-                qs = qs.filter(payment__period=m_date)
-            except Exception:
-                pass
+            bp = BillingPeriod.objects.filter(
+                Q(period_id=period_param) | Q(id=int(period_param) if str(period_param).isdigit() else -1)
+            ).first()
+            if bp:
+                qs = qs.filter(payment__period=bp.month)
+            else:
+                try:
+                    m_date = datetime.strptime(period_param[:7], "%Y-%m").date().replace(day=1)
+                    qs = qs.filter(payment__period=m_date)
+                except Exception:
+                    pass
 
         ordering = request.GET.get("ordering", "-created_at")
         if ordering in ("-created_at", "created_at", "-paid_on", "paid_on"):

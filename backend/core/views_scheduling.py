@@ -10,6 +10,7 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
 from .models import (
+    AuditLog,
     ClassGroup,
     Enrollment,
     Schedule,
@@ -52,25 +53,29 @@ def _get_subject_color(subject_name):
 
 def _serialize_occurrence(schedule):
     cg = schedule.class_group
-    sub = cg.subject
+    sub = schedule.subject or (cg.subject if cg else None)
     teacher_user = schedule.teacher.user
     teacher_name = teacher_user.get_full_name() or teacher_user.username
-    room_name = cg.room or "Ruang 101"
-    student_count = cg.students.filter(enrollment__is_active=True).count()
+    room_name = (cg.room if cg else "") or "Ruang 101"
+    student_count = cg.students.filter(enrollment__is_active=True).count() if cg else 0
     session_id = str(schedule.session.id) if hasattr(schedule, "session") and schedule.session else None
 
     start_at = f"{schedule.date.isoformat()}T{schedule.start_time.strftime('%H:%M:%S')}+07:00"
     end_at = f"{schedule.date.isoformat()}T{schedule.end_time.strftime('%H:%M:%S')}+07:00"
 
+    sub_id = str(sub.id) if sub else ""
+    sub_name = sub.name if sub else "-"
+    sub_color = _get_subject_color(sub_name) if sub else "teal"
+
     return {
         "id": str(schedule.id),
         "series": None,
         "sequence": 1,
-        "class_group": str(cg.id),
-        "class_name": cg.name,
-        "subject": str(sub.id),
-        "subject_name": sub.name,
-        "subject_color": _get_subject_color(sub.name),
+        "class_group": str(cg.id) if cg else "",
+        "class_name": cg.name if cg else "",
+        "subject": sub_id,
+        "subject_name": sub_name,
+        "subject_color": sub_color,
         "teacher": str(schedule.teacher.id),
         "teacher_name": teacher_name,
         "room": cg.room or "1",
@@ -151,10 +156,21 @@ def _serialize_teaching_session(session):
     started_at = session.started_at.isoformat() if session.started_at else start_at
     completed_at = session.completed_at.isoformat() if session.completed_at else None
 
+    ta = getattr(session, "teacher_attendance", None)
+    if not ta:
+        ta = TeacherAttendance.objects.filter(session=session).first()
+    teacher_attendance_data = {
+        "id": str(ta.id),
+        "teacher_id": str(ta.teacher_id),
+        "checked_in_at": ta.checked_in_at.isoformat() if ta and ta.checked_in_at else None,
+        "checked_out_at": ta.checked_out_at.isoformat() if ta and ta.checked_out_at else None,
+    } if ta else None
+
     return {
         "id": str(session.id),
         "occurrence_id": str(schedule.id),
         "occurrence_status": STATUS_TO_FRONTEND.get(schedule.status, "SCHEDULED"),
+        "teacher_attendance": teacher_attendance_data,
         "class_group": str(cg.id),
         "class_name": cg.name,
         "subject_name": sub.name,
@@ -187,6 +203,7 @@ def check_schedule_conflicts(
     teacher,
     room=None,
     exclude_schedule_id=None,
+    subject=None,
 ):
     """
     Validates overlapping schedules on target_date.
@@ -203,6 +220,8 @@ def check_schedule_conflicts(
     if exclude_schedule_id:
         overlapping = overlapping.exclude(pk=exclude_schedule_id)
 
+    target_sub_id = subject.id if subject else (class_group.subject_id if class_group else None)
+
     # 1. ClassGroup conflict: A class group cannot have two overlapping sessions
     cg_overlap = overlapping.filter(class_group=class_group).first()
     if cg_overlap:
@@ -211,13 +230,13 @@ def check_schedule_conflicts(
         )
 
     # 2. Room conflict: Another class using the same room
-    target_room = (room if room is not None else class_group.room) or ""
+    target_room = (room if room is not None else (class_group.room if class_group else "")) or ""
     if target_room:
         room_overlap = overlapping.filter(class_group__room=target_room).exclude(class_group=class_group)
         room_hit = room_overlap.first()
         if room_hit:
-            # Different teacher or different subject in same room is a conflict
-            if room_hit.teacher_id != teacher.id or room_hit.class_group.subject_id != class_group.subject_id:
+            hit_sub_id = room_hit.subject_id or (room_hit.class_group.subject_id if room_hit.class_group else None)
+            if room_hit.teacher_id != teacher.id or hit_sub_id != target_sub_id:
                 conflicts.append(
                     f"Ruangan '{target_room}' sudah digunakan oleh rombel lain ({room_hit.class_group.name}) pada jam {room_hit.start_time.strftime('%H:%M')}-{room_hit.end_time.strftime('%H:%M')}."
                 )
@@ -228,10 +247,11 @@ def check_schedule_conflicts(
         t_name = t_user.get_full_name() or t_user.username
         teacher_overlap = overlapping.filter(teacher=teacher).exclude(class_group=class_group)
         for t_hit in teacher_overlap:
-            # Parallel classes are allowed if same subject (e.g. joint cohorts 10A/10B Matematika)
-            if t_hit.class_group.subject_id != class_group.subject_id:
+            hit_sub_id = t_hit.subject_id or (t_hit.class_group.subject_id if t_hit.class_group else None)
+            if hit_sub_id != target_sub_id:
+                hit_sub_name = t_hit.subject.name if t_hit.subject else (t_hit.class_group.subject.name if t_hit.class_group and t_hit.class_group.subject else "mata pelajaran lain")
                 conflicts.append(
-                    f"Pengajar '{t_name}' sudah memiliki jadwal mengajar mata pelajaran lain ({t_hit.class_group.name} - {t_hit.class_group.subject.name}) pada jam {t_hit.start_time.strftime('%H:%M')}-{t_hit.end_time.strftime('%H:%M')}."
+                    f"Pengajar '{t_name}' sudah memiliki jadwal mengajar mata pelajaran lain ({t_hit.class_group.name} - {hit_sub_name}) pada jam {t_hit.start_time.strftime('%H:%M')}-{t_hit.end_time.strftime('%H:%M')}."
                 )
             elif target_room and t_hit.class_group.room and target_room != t_hit.class_group.room:
                 conflicts.append(
@@ -344,23 +364,28 @@ def v1_schedule_occurrences(request):
 
         room = body.get("room") or cg.room
 
-        conflicts = check_schedule_conflicts(start_date, start_time, end_time, cg, tp, room=room)
+        subject_id = body.get("subject") or body.get("subject_id")
+        subject = Subject.objects.filter(pk=subject_id).first() if subject_id else cg.subject
+
+        conflicts = check_schedule_conflicts(start_date, start_time, end_time, cg, tp, room=room, subject=subject)
         if conflicts:
             return api_error(f"Benturan jadwal: {'; '.join(conflicts)}", code="SCHEDULE_CONFLICT", status=400)
 
         with transaction.atomic():
             sched = Schedule.objects.create(
                 class_group=cg,
+                subject=subject,
                 teacher=tp,
                 date=start_date,
                 start_time=start_time,
                 end_time=end_time,
                 status=Schedule.Status.SCHEDULED,
             )
+            sub_name = subject.name if subject else cg.name
             SessionRecord.objects.create(
                 schedule=sched,
                 status=SessionRecord.Status.DRAFT,
-                topic=body.get("topic") or f"{cg.subject.name} Kelas {cg.name}",
+                topic=body.get("topic") or f"{sub_name} Kelas {cg.name}",
             )
 
         return api_success(_serialize_occurrence(sched), status=201)
@@ -424,9 +449,15 @@ def v1_schedule_occurrence_detail(request, occurrence_id):
         if "room" in body:
             target_room = body.get("room") or ""
 
+        target_subject = schedule.subject
+        if "subject" in body and body["subject"]:
+            sub = Subject.objects.filter(pk=body["subject"]).first()
+            if sub:
+                target_subject = sub
+
         conflicts = check_schedule_conflicts(
             target_date, target_start, target_end, target_class_group, target_teacher,
-            room=target_room, exclude_schedule_id=schedule.id,
+            room=target_room, exclude_schedule_id=schedule.id, subject=target_subject,
         )
         if conflicts:
             return api_error(f"Benturan jadwal: {'; '.join(conflicts)}", code="SCHEDULE_CONFLICT", status=400)
@@ -436,6 +467,7 @@ def v1_schedule_occurrence_detail(request, occurrence_id):
         schedule.end_time = target_end
         schedule.class_group = target_class_group
         schedule.teacher = target_teacher
+        schedule.subject = target_subject
         schedule.save()
         return api_success(_serialize_occurrence(schedule))
 
@@ -487,12 +519,17 @@ def v1_schedule_occurrence_reschedule(request, occurrence_id):
     if new_end <= new_start:
         return api_error("Waktu selesai harus lebih akhir daripada waktu mulai.", code="VALIDATION_ERROR")
 
+    target_room = body.get("room") if body.get("room") is not None else schedule.class_group.room
     conflicts = check_schedule_conflicts(
         new_date, new_start, new_end, schedule.class_group, schedule.teacher,
-        room=schedule.class_group.room, exclude_schedule_id=schedule.id,
+        room=target_room, exclude_schedule_id=schedule.id, subject=schedule.subject,
     )
     if conflicts:
         return api_error(f"Benturan jadwal: {'; '.join(conflicts)}", code="SCHEDULE_CONFLICT", status=400)
+
+    if body.get("room") and body.get("room") != schedule.class_group.room:
+        schedule.class_group.room = body["room"]
+        schedule.class_group.save(update_fields=["room"])
 
     schedule.date = new_date
     schedule.start_time = new_start
@@ -512,7 +549,7 @@ def v1_schedule_occurrence_reschedule(request, occurrence_id):
             f_target_date = f_sched.date + timedelta(days=day_diff)
             f_conflicts = check_schedule_conflicts(
                 f_target_date, new_start, new_end, f_sched.class_group, f_sched.teacher,
-                room=f_sched.class_group.room, exclude_schedule_id=f_sched.id,
+                room=f_sched.class_group.room, exclude_schedule_id=f_sched.id, subject=f_sched.subject,
             )
             if not f_conflicts:
                 f_sched.date = f_target_date
@@ -590,6 +627,22 @@ def v1_schedule_occurrence_start(request, occurrence_id):
             session.started_at = timezone.now()
             session.topic = topic
             session.save(update_fields=["status", "started_at", "topic"])
+
+        TeacherAttendance.objects.get_or_create(
+            session=session,
+            defaults={
+                "teacher": schedule.teacher,
+                "checked_in_at": session.started_at or timezone.now(),
+            },
+        )
+
+        AuditLog.objects.create(
+            actor=request.user if request.user.is_authenticated else None,
+            action="START_SESSION",
+            target_type="SESSION",
+            target_id=str(session.id),
+            new_value={"occurrence_id": str(schedule.id), "started_at": timezone.now().isoformat()},
+        )
 
     return api_success(_serialize_teaching_session(session))
 
@@ -730,6 +783,7 @@ def v1_schedule_replicate_week(request):
                     src.class_group,
                     src.teacher,
                     room=src.class_group.room,
+                    subject=src.subject,
                 )
                 if conflicts:
                     if skip_conflicts:
@@ -744,16 +798,18 @@ def v1_schedule_replicate_week(request):
 
                 sched = Schedule.objects.create(
                     class_group=src.class_group,
+                    subject=src.subject,
                     teacher=src.teacher,
                     date=target_date,
                     start_time=src.start_time,
                     end_time=src.end_time,
                     status=Schedule.Status.SCHEDULED,
                 )
+                src_sub_name = src.subject.name if src.subject else (src.class_group.subject.name if src.class_group and src.class_group.subject else src.class_group.name)
                 SessionRecord.objects.create(
                     schedule=sched,
                     status=SessionRecord.Status.DRAFT,
-                    topic=f"{src.class_group.subject.name} Kelas {src.class_group.name}",
+                    topic=f"{src_sub_name} Kelas {src.class_group.name}",
                 )
                 created_ids.append(sched.id)
 
@@ -873,6 +929,14 @@ def v1_session_attendance(request, session_id):
                     sa.modified_by = request.user if request.user.is_authenticated else None
                     sa.save(update_fields=["status", "modified_by", "modified_at"])
 
+            AuditLog.objects.create(
+                actor=request.user if request.user.is_authenticated else None,
+                action="UPDATE_ATTENDANCE",
+                target_type="SESSION",
+                target_id=str(session.id),
+                new_value={"attendance_items_count": len(items)},
+            )
+
         return api_success(_serialize_teaching_session(session))
 
     return api_error("Metode tidak diizinkan.", code="METHOD_NOT_ALLOWED", status=405)
@@ -924,6 +988,23 @@ def v1_session_complete(request, session_id):
         session.schedule.status = Schedule.Status.COMPLETED
         session.schedule.save(update_fields=["status"])
 
+        TeacherAttendance.objects.update_or_create(
+            session=session,
+            defaults={
+                "teacher": session.schedule.teacher,
+                "checked_in_at": session.started_at or timezone.now(),
+                "checked_out_at": session.completed_at or timezone.now(),
+            },
+        )
+
+        AuditLog.objects.create(
+            actor=request.user if request.user.is_authenticated else None,
+            action="COMPLETE_SESSION",
+            target_type="SESSION",
+            target_id=str(session.id),
+            new_value={"completed_at": timezone.now().isoformat()},
+        )
+
     return api_success(_serialize_teaching_session(session))
 
 
@@ -955,6 +1036,19 @@ def v1_session_reopen(request, session_id):
 
         session.schedule.status = Schedule.Status.ONGOING
         session.schedule.save(update_fields=["status"])
+
+        ta = TeacherAttendance.objects.filter(session=session).first()
+        if ta:
+            ta.checked_out_at = None
+            ta.save(update_fields=["checked_out_at"])
+
+        AuditLog.objects.create(
+            actor=request.user if request.user.is_authenticated else None,
+            action="REOPEN_SESSION",
+            target_type="SESSION",
+            target_id=str(session.id),
+            new_value={"reason": reason},
+        )
 
     return api_success(_serialize_teaching_session(session))
 

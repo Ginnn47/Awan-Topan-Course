@@ -57,18 +57,15 @@ class Subject(models.Model):
 
 
 class ClassGroup(models.Model):
-    name = models.CharField(max_length=120)
-    subject = models.ForeignKey(Subject, on_delete=models.PROTECT, related_name="class_groups")
-    teacher = models.ForeignKey(TeacherProfile, on_delete=models.PROTECT, related_name="class_groups")
+    name = models.CharField(max_length=120, unique=True)
+    subject = models.ForeignKey(Subject, on_delete=models.SET_NULL, related_name="class_groups", null=True, blank=True)
+    teacher = models.ForeignKey(TeacherProfile, on_delete=models.SET_NULL, related_name="class_groups", null=True, blank=True)
     room = models.CharField(max_length=120, blank=True)
     students = models.ManyToManyField(Student, through="Enrollment", related_name="class_groups")
     is_active = models.BooleanField(default=True)
 
-    class Meta:
-        unique_together = ("name", "subject")
-
     def __str__(self):
-        return f"{self.name} - {self.subject.name}"
+        return self.name
 
 
 class FeePlan(models.Model):
@@ -107,6 +104,7 @@ class Schedule(models.Model):
         CANCELLED = "cancelled", "Cancelled"
 
     class_group = models.ForeignKey(ClassGroup, on_delete=models.PROTECT, related_name="schedules")
+    subject = models.ForeignKey(Subject, on_delete=models.PROTECT, related_name="schedules", null=True, blank=True)
     teacher = models.ForeignKey(TeacherProfile, on_delete=models.PROTECT, related_name="schedules")
     date = models.DateField()
     start_time = models.TimeField()
