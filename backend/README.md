@@ -25,6 +25,13 @@ python manage.py createsuperuser
 python manage.py runserver 127.0.0.1:8000
 ```
 
+Jika database target masih kosong, isi dataset awal tanpa menghapus data yang sudah ada:
+```bash
+python manage.py seed_app_data --period 2026-10 --password "ganti-password-ini"
+```
+Seeder ini idempoten dan mengisi akun aplikasi, guru, rombel, siswa, enrollment,
+periode tagihan, invoice, serta satu transaksi pembayaran terverifikasi.
+
 ## 2. Konfigurasi Database Produksi (MySQL/MariaDB AnyMHost)
 
 Di cPanel AnyMHost:

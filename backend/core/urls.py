@@ -76,6 +76,7 @@ urlpatterns = [
 
     # Legacy endpoints
     path("health/", views.health, name="health"),
+    path("health/ready/", views.health_ready, name="health-ready"),
     path("schedules/", views.schedule_list, name="schedule-list"),
     path("payments/", views.payment_list, name="payment-list"),
 ]

@@ -46,7 +46,12 @@ export default function PaymentsApi() {
     queryFn: ({ signal }) =>
       apiListAll<BillingPeriod>("/api/v1/billing-periods/", signal),
   });
-  const period = periods.data?.find((item) => item.month.startsWith(month));
+  // A deployment may be seeded for a future/current academic period while the
+  // browser clock is different. Show the newest available period instead of
+  // presenting an empty screen in that case.
+  const period =
+    periods.data?.find((item) => item.month.startsWith(month)) ||
+    periods.data?.[0];
   const invoices = useQuery({
     queryKey: queryKeys.invoices(period?.id || month),
     queryFn: ({ signal }) =>

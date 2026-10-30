@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 from django.contrib.auth import authenticate, get_user_model, login, logout
+from django.db import connection
 from django.db.models import Count, Sum
 from django.http import HttpResponse, JsonResponse
 from django.middleware.csrf import get_token
@@ -127,6 +128,22 @@ def auth_me(request):
 # ------------------------------------------------------------------------------
 def health(request):
     return JsonResponse({"status": "ok", "service": "Awan Topan Course API"})
+
+
+def health_ready(request):
+    """Return a readiness response only when Django can reach its database."""
+    try:
+        connection.ensure_connection()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+    except Exception:
+        return JsonResponse(
+            {"status": "error", "service": "Awan Topan Course API", "database": "unavailable"},
+            status=503,
+        )
+
+    return JsonResponse({"status": "ok", "service": "Awan Topan Course API", "database": "ok"})
 
 
 def dashboard_summary(request):
